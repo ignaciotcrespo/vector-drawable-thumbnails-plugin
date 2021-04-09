@@ -1,19 +1,40 @@
 <idea-plugin>
-    <id>org.jetbrains.plugins.template</id>
-    <name>Template</name>
-    <vendor>JetBrains</vendor>
+    <id>ignaciotcrespo.github.com.vector-drawable-thumbnails</id>
+    <name>Vector Drawable Thumbnails</name>
+    <version>1.0.2</version>
+    <vendor email="itcrespo@gmail.com" url="https://github.com/ignaciotcrespo">Ignacio Tomas Crespo</vendor>
 
-    <!-- Product and plugin compatibility requirements -->
-    <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
-    <depends>com.intellij.modules.platform</depends>
+    <description><![CDATA[
+    <p>Display all android vector drawables in the entire project</p>
+    <p>Click on the thumbnail to open the xml file</p>
+    <p/>
+    <p>
+    How to use: Go to menu View > Tool Windows > Vector Thumbnails
+    </p>
+    ]]></description>
+
+    <change-notes><![CDATA[
+      - first version <br>
+    ]]>
+    </change-notes>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <idea-version since-build="173.0"/>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="org.jetbrains.plugins.template.services.MyApplicationService"/>
-        <projectService serviceImplementation="org.jetbrains.plugins.template.services.MyProjectService"/>
+        <!-- Add your extensions here -->
+        <!-- icons specs: https://www.jetbrains.org/intellij/sdk/docs/reference_guide/work_with_icons_and_images.html -->
+        <toolWindow id="Vector Thumnails" icon="/ic_props13x13.png" anchor="right" factoryClass="com.github.ignaciotcrespo.vectordrawablesthumbnails.VectorDrawablesToolWindowFactory"/>
     </extensions>
 
-    <applicationListeners>
-        <listener class="org.jetbrains.plugins.template.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
 </idea-plugin>

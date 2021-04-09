@@ -1,0 +1,3 @@
+package com.github.ignaciotcrespo.vectordrawablesthumbnails
+
+interface PresenterEvent 
