@@ -2,8 +2,6 @@
 
 # vector-drawable-thumbnails-plugin Changelog
 
-## [Unreleased]
-## [1.0.3]
-## [1.0.3]
+## [Released] 1.0.3
 ### Added
 - Migration to kotlin
