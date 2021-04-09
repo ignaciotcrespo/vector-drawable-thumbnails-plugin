@@ -33,8 +33,6 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation(files("lib/sdk-common.jar"))
     implementation(files("lib/android-base-common.jar"))
-
-//    implementation group: 'io.reactivex.rxjava2', name: 'rxjava', version: '2.2.21'
 }
 
 // Configure gradle-intellij-plugin plugin.

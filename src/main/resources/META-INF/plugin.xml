@@ -4,6 +4,10 @@
     <version>1.0.2</version>
     <vendor email="itcrespo@gmail.com" url="https://github.com/ignaciotcrespo">Ignacio Tomas Crespo</vendor>
 
+    <!-- Product and plugin compatibility requirements -->
+    <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
     <description><![CDATA[
     <p>Display all android vector drawables in the entire project</p>
     <p>Click on the thumbnail to open the xml file</p>
