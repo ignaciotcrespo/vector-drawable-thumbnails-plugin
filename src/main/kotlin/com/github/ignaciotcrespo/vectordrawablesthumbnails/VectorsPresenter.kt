@@ -16,7 +16,6 @@ import java.awt.image.BufferedImage
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 internal class VectorsPresenter {
@@ -65,15 +64,14 @@ internal class VectorsPresenter {
             try {
                 val modules = ModuleManager.getInstance(project).modules
                 if (modules.isNotEmpty()) {
-                    val file = modules[0].project.baseDir
                     val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
                     for (module in modules) {
                         val excludedRoots = ModuleRootManager.getInstance(
                             module!!
                         ).excludeRoots
-                        allExcludedRoots.addAll(Arrays.asList(*excludedRoots))
+                        allExcludedRoots.addAll(listOf(*excludedRoots))
                     }
-                    val projectRootFolder = file.canonicalPath
+                    val projectRootFolder = modules[0].project.basePath
                     if (projectRootFolder != null) {
                         val file1 = File(projectRootFolder)
                         searchFiles(emitter, file1, projectRootFolder, allExcludedRoots)
@@ -134,7 +132,7 @@ internal class VectorsPresenter {
         var inputStream: FileInputStream? = null
         try {
             inputStream = FileInputStream(file.file)
-            var xml = IOUtils.toString(inputStream)
+            var xml = IOUtils.toString(inputStream, Charsets.UTF_8)
             if (xml.contains("</vector>")) {
                 if (xml.contains("@color/")) {
                     xml = xml.replace("@color/\\w+".toRegex(), "#000000")
