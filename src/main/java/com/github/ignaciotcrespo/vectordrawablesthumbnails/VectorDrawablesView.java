@@ -14,6 +14,7 @@ public class VectorDrawablesView {
     private JButton clearButton;
     private JRadioButton radioSortName;
     private JRadioButton radioSortUnsorted;
+    private JPanel panelFilter;
 
     public VectorDrawablesView() {
 
@@ -47,12 +48,18 @@ public class VectorDrawablesView {
         return clearButton;
     }
 
+    public JPanel getPanelFilter() {
+        return panelFilter;
+    }
+
     private void createUIComponents() {
         panelMain = new JPanel();
-        panelMain.setLayout(new BoxLayout(panelMain, BoxLayout.PAGE_AXIS));
+        panelMain.setLayout(new BoxLayout(panelMain, BoxLayout.X_AXIS));
 
         panelVectors = new JPanel();
-        panelVectors.setLayout(new GridLayout(0, 3));
+        GridLayout gridLayout = new GridLayout(0, 3);
+        gridLayout.setVgap(20);
+        panelVectors.setLayout(gridLayout);
 
         vectorsContainer = new JBScrollPane(panelVectors);
         vectorsContainer.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);

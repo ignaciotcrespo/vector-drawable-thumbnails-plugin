@@ -179,16 +179,13 @@ internal class VectorsPresenter {
         this.filterText = text?.toLowerCase()
     }
 
-    fun itemsFiltered(): List<VectorItem> {
-        val arrayList = if (filterText.isNullOrEmpty()) {
-            ArrayList(items)
-        } else {
-            ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
-        }
+    fun itemsFiltered() = when {
+        filterText.isNullOrEmpty() -> ArrayList(items)
+        else -> ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
+    }.also {
         if (sort == SortByItem.NAME) {
-            arrayList.sortBy { it.name }
+            it.sortBy { it.name }
         }
-        return arrayList
     }
 
     fun sortBy(sort: SortByItem) {

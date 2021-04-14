@@ -17,7 +17,9 @@
           <grid id="dc56e" binding="panelVectors" custom-create="true" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
             <margin top="0" left="0" bottom="0" right="0"/>
             <constraints/>
-            <properties/>
+            <properties>
+              <enabled value="false"/>
+            </properties>
             <border type="none"/>
             <children/>
           </grid>
@@ -28,27 +30,36 @@
         <properties/>
         <border type="none"/>
         <children>
-          <grid id="a241b" layout-manager="BorderLayout" hgap="0" vgap="0">
+          <grid id="a241b" binding="panelFilter" layout-manager="BorderLayout" hgap="0" vgap="0">
             <constraints border-constraint="South"/>
-            <properties/>
+            <properties>
+              <enabled value="false"/>
+            </properties>
             <border type="none"/>
             <children>
-              <component id="d4f90" class="javax.swing.JTextField" binding="textFilter">
+              <grid id="a8b5" layout-manager="BorderLayout" hgap="0" vgap="0">
                 <constraints border-constraint="Center"/>
                 <properties/>
-              </component>
-              <component id="ae807" class="javax.swing.JButton" binding="clearButton" default-binding="true">
-                <constraints border-constraint="East"/>
-                <properties>
-                  <text value="Clear"/>
-                </properties>
-              </component>
-              <component id="2105" class="javax.swing.JLabel">
-                <constraints border-constraint="West"/>
-                <properties>
-                  <text value="Filter"/>
-                </properties>
-              </component>
+                <border type="none"/>
+                <children>
+                  <component id="2105" class="javax.swing.JLabel">
+                    <constraints border-constraint="West"/>
+                    <properties>
+                      <text value="Filter"/>
+                    </properties>
+                  </component>
+                  <component id="d4f90" class="javax.swing.JTextField" binding="textFilter">
+                    <constraints border-constraint="Center"/>
+                    <properties/>
+                  </component>
+                  <component id="ae807" class="javax.swing.JButton" binding="clearButton" default-binding="true">
+                    <constraints border-constraint="East"/>
+                    <properties>
+                      <text value="Clear"/>
+                    </properties>
+                  </component>
+                </children>
+              </grid>
               <grid id="a9e73" layout-manager="GridBagLayout">
                 <constraints border-constraint="North"/>
                 <properties/>
@@ -98,19 +109,12 @@
               </grid>
             </children>
           </grid>
-          <toolbar id="c2569">
+          <component id="69696" class="javax.swing.JButton" binding="btnRefresh">
             <constraints border-constraint="Center"/>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <component id="69696" class="javax.swing.JButton" binding="btnRefresh">
-                <constraints/>
-                <properties>
-                  <text value="Refresh"/>
-                </properties>
-              </component>
-            </children>
-          </toolbar>
+            <properties>
+              <text value="Refresh"/>
+            </properties>
+          </component>
         </children>
       </grid>
     </children>
