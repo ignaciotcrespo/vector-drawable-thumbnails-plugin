@@ -13,22 +13,29 @@
           <text value="Button"/>
         </properties>
       </component>
-      <scrollpane id="d09d6" binding="vectorsContainer" custom-create="true">
+      <grid id="6e5f9" binding="panelWithToolbar" layout-manager="BorderLayout" hgap="0" vgap="0">
         <constraints border-constraint="Center"/>
-        <properties>
-          <horizontalScrollBarPolicy value="31"/>
-        </properties>
+        <properties/>
         <border type="none"/>
         <children>
-          <grid id="dc56e" binding="panelVectors" custom-create="true" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="true" same-size-vertically="true" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints/>
-            <properties/>
+          <scrollpane id="d09d6" binding="vectorsContainer" custom-create="true">
+            <constraints border-constraint="Center"/>
+            <properties>
+              <horizontalScrollBarPolicy value="31"/>
+            </properties>
             <border type="none"/>
-            <children/>
-          </grid>
+            <children>
+              <grid id="dc56e" binding="panelVectors" custom-create="true" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="true" same-size-vertically="true" hgap="-1" vgap="-1">
+                <margin top="0" left="0" bottom="0" right="0"/>
+                <constraints/>
+                <properties/>
+                <border type="none"/>
+                <children/>
+              </grid>
+            </children>
+          </scrollpane>
         </children>
-      </scrollpane>
+      </grid>
     </children>
   </grid>
 </form>

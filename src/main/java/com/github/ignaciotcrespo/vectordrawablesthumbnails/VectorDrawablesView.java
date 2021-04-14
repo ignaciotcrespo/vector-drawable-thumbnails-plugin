@@ -10,6 +10,7 @@ public class VectorDrawablesView {
     private JPanel panelMain;
     private JScrollPane vectorsContainer;
     private JPanel panelVectors;
+    private JPanel panelWithToolbar;
 
     public JButton getBtnRefresh() {
         return btnRefresh;
