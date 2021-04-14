@@ -19,6 +19,8 @@
 
     How to use: Go to menu View > Tool Windows > Vector Thumbnails
 
+    [Donations are welcomed](https://paypal.me/itcrespo)
+
 <!-- Plugin description end -->
 
 ## Installation
