@@ -4,6 +4,8 @@
 
 ## [Released] 1.0.4
 ### Added
+- added filters
+- added sort by name  
 - Compatibility since 181+
 
 ## [Released] 1.0.3
