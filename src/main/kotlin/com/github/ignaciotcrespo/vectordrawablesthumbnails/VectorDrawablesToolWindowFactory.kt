@@ -7,9 +7,11 @@ import com.intellij.ui.content.ContentFactory
 import java.awt.BorderLayout
 import java.awt.BorderLayout.NORTH
 import java.awt.BorderLayout.SOUTH
+import java.awt.Desktop
 import java.awt.event.ItemEvent.SELECTED
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
+import java.net.URL
 import javax.swing.ImageIcon
 import javax.swing.JLabel
 import javax.swing.JPanel
@@ -22,6 +24,13 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
         val presenter = VectorsPresenter()
         val view = VectorDrawablesView()
 
+        view.btnDonate.addActionListener {
+            try {
+                Desktop.getDesktop().browse(URL("https://paypal.me/itcrespo").toURI())
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
         view.btnRefresh.addActionListener {
             presenter.refreshPropertiesData(project, false)
         }

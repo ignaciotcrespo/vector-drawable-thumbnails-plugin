@@ -19,6 +19,7 @@
             <constraints/>
             <properties>
               <enabled value="false"/>
+              <opaque value="true"/>
             </properties>
             <border type="none"/>
             <children/>
@@ -113,6 +114,13 @@
             <constraints border-constraint="Center"/>
             <properties>
               <text value="Refresh"/>
+            </properties>
+          </component>
+          <component id="8f753" class="javax.swing.JButton" binding="btnDonate">
+            <constraints border-constraint="East"/>
+            <properties>
+              <label value="♡"/>
+              <text value="♡"/>
             </properties>
           </component>
         </children>

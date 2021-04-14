@@ -1,5 +1,6 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
@@ -15,6 +16,7 @@ public class VectorDrawablesView {
     private JRadioButton radioSortName;
     private JRadioButton radioSortUnsorted;
     private JPanel panelFilter;
+    private JButton btnDonate;
 
     public VectorDrawablesView() {
 
@@ -52,6 +54,10 @@ public class VectorDrawablesView {
         return panelFilter;
     }
 
+    public JButton getBtnDonate() {
+        return btnDonate;
+    }
+
     private void createUIComponents() {
         panelMain = new JPanel();
         panelMain.setLayout(new BoxLayout(panelMain, BoxLayout.X_AXIS));
@@ -66,5 +72,11 @@ public class VectorDrawablesView {
         vectorsContainer.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         vectorsContainer.setLayout(new ScrollPaneLayout());
 
+//        btnDonate.setOpaque(false);
+//        btnDonate.setContentAreaFilled(false);
+//        btnDonate.setBorderPainted(false);
+
+        // https://jetbrains.design/intellij/resources/icons_list/
+//        btnDonate = new JButton(AllIcons.Nodes.Gvariable);
     }
 }
