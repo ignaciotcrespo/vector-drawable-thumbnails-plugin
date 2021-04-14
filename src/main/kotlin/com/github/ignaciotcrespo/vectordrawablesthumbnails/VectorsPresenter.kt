@@ -20,21 +20,30 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 internal class VectorsPresenter {
+    private var filterText: String? = null
     private val uiEvents = PublishSubject.create<UiEvent>()
     val presenterEvents = PublishSubject.create<PresenterEvent>()
     private var state = VectorStatePresenterEvent.State.IDLE
-    fun refreshPropertiesData(project: Project?) {
-        uiEvents.onNext(RefreshUiEvent(project!!))
+    private val items = ArrayList<VectorItem>()
+
+    fun refreshPropertiesData(project: Project?, delay: Boolean = true) {
+        uiEvents.onNext(RefreshUiEvent(project!!, delay))
     }
 
-    private fun refresh(project: Project) {
+    private fun refresh(project: Project, delay: Boolean = true) {
         if (setState(VectorStatePresenterEvent.State.SEARCHING)) {
+            items.clear()
             getValidFilesObservable(project)
-                .delay(2, TimeUnit.SECONDS)
+                .delay(if (delay) 2 else 0, TimeUnit.SECONDS)
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.newThread()) //                .doOnNext(tableModel::addItem)
                 .flatMap { f: ValidFile -> getItemsObservable(f) }
-                .doOnNext { vectorItem: VectorItem? -> presenterEvents.onNext(VectorFoundPresenterEvent(vectorItem)) } //                .doOnSubscribe(disposable -> tableModel.clear())
+                .doOnNext { vectorItem: VectorItem? ->
+                    if (vectorItem != null) {
+                        items.add(vectorItem)
+                        presenterEvents.onNext(VectorFoundPresenterEvent(vectorItem))
+                    }
+                } //                .doOnSubscribe(disposable -> tableModel.clear())
                 .doOnComplete { setState(VectorStatePresenterEvent.State.IDLE) }
                 .doOnError { setState(VectorStatePresenterEvent.State.IDLE) }
                 .subscribe()
@@ -54,7 +63,7 @@ internal class VectorsPresenter {
         return Observable.create { emitter: ObservableEmitter<ValidFile> ->
             try {
                 val modules = ModuleManager.getInstance(project).modules
-                if (modules.size > 0) {
+                if (modules.isNotEmpty()) {
                     val file = modules[0].project.baseDir
                     val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
                     for (module in modules) {
@@ -158,6 +167,16 @@ internal class VectorsPresenter {
         uiEvents.onNext(VectorClickedUiEvent(project, item))
     }
 
+    fun filter(text: String?) {
+        this.filterText = text?.toLowerCase()
+    }
+
+    fun itemsFiltered() = if (filterText.isNullOrEmpty()) {
+        ArrayList(items)
+    } else {
+        ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
+    }
+
     init {
         uiEvents
             .subscribeOn(Schedulers.io())
@@ -166,7 +185,7 @@ internal class VectorsPresenter {
             .compose(RxUtils.avoidFastClicks())
             .retry()
             .doOnError { x: Throwable? -> println(x) }
-            .subscribe { ui: RefreshUiEvent -> refresh(ui.project) }
+            .subscribe { ui: RefreshUiEvent -> refresh(ui.project, ui.delay) }
         uiEvents
             .subscribeOn(Schedulers.io())
             .observeOn(Schedulers.io())

@@ -4,13 +4,22 @@ import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.InputMethodEvent;
+import java.awt.event.InputMethodListener;
 
 public class VectorDrawablesView {
-    private JButton btnRefresh;
     private JPanel panelMain;
     private JScrollPane vectorsContainer;
     private JPanel panelVectors;
-    private JPanel panelWithToolbar;
+    private JButton btnRefresh;
+    private JTextField textFilter;
+    private JButton clearButton;
+    private JCheckBox nameCheckBox;
+    private JCheckBox unsortedCheckBox;
+
+    public VectorDrawablesView() {
+
+    }
 
     public JButton getBtnRefresh() {
         return btnRefresh;
@@ -24,8 +33,8 @@ public class VectorDrawablesView {
         return panelVectors;
     }
 
-    public JScrollPane getVectorsContainer() {
-        return vectorsContainer;
+    public JTextField getTextFilter() {
+        return textFilter;
     }
 
     private void createUIComponents() {

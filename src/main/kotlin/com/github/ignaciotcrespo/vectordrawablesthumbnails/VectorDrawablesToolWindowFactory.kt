@@ -8,6 +8,8 @@ import javax.swing.ImageIcon
 import javax.swing.JButton
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 
 class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -16,26 +18,35 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
 
         view.btnRefresh.addActionListener {
             view.panelVectors.removeAll()
-            presenter.refreshPropertiesData(project)
+            presenter.refreshPropertiesData(project, false)
         }
+        view.textFilter.document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent?) {
+                presenter.filter(view.textFilter.text)
+                view.panelVectors.removeAll()
+                showItems(presenter, project, view)
+            }
+
+            override fun removeUpdate(e: DocumentEvent?) {
+                presenter.filter(view.textFilter.text)
+                view.panelVectors.removeAll()
+                showItems(presenter, project, view)
+            }
+
+            override fun changedUpdate(e: DocumentEvent) {
+                presenter.filter(view.textFilter.text)
+                view.panelVectors.removeAll()
+                showItems(presenter, project, view)
+            }
+
+        })
 
         showContent(toolWindow, view.content)
         presenter.presenterEvents
             .ofType(VectorFoundPresenterEvent::class.java)
             .doOnNext { vector: VectorFoundPresenterEvent ->
-                val component = ImageIcon(vector.item!!.image)
-                val button = JButton(component)
-                button.text = vector.item.name
-                button.horizontalTextPosition = JLabel.CENTER
-                button.verticalTextPosition = JLabel.BOTTOM
-                button.verticalAlignment = JLabel.BOTTOM
-                button.addActionListener {
-                    presenter.onVectorClicked(
-                        project,
-                        vector.item
-                    )
-                }
-                view.panelVectors.add(button)
+            }
+            .doOnComplete {
             }
             .subscribe()
         presenter.presenterEvents
@@ -44,11 +55,35 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
                 if (event.state == VectorStatePresenterEvent.State.SEARCHING) {
                     view.btnRefresh.text = "Searching, please wait..."
                 } else {
+                    showItems(presenter, project, view)
                     view.btnRefresh.text = "Refresh"
                 }
             }
             .subscribe()
         presenter.refreshPropertiesData(project)
+    }
+
+    private fun showItems(
+        presenter: VectorsPresenter,
+        project: Project,
+        view: VectorDrawablesView
+    ) {
+        presenter.itemsFiltered().forEach { item ->
+            val component = ImageIcon(item.image)
+            val button = JButton(component)
+            button.text = item.name
+            button.horizontalTextPosition = JLabel.CENTER
+            button.verticalTextPosition = JLabel.BOTTOM
+            button.verticalAlignment = JLabel.BOTTOM
+            button.addActionListener {
+                presenter.onVectorClicked(
+                    project,
+                    item
+                )
+            }
+            view.panelVectors.add(button)
+        }
+        view.panelVectors.revalidate()
     }
 
     private fun showContent(toolWindow: ToolWindow, panel: JPanel) {
