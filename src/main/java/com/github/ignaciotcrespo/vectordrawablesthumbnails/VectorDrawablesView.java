@@ -4,8 +4,6 @@ import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.InputMethodEvent;
-import java.awt.event.InputMethodListener;
 
 public class VectorDrawablesView {
     private JPanel panelMain;
@@ -14,8 +12,8 @@ public class VectorDrawablesView {
     private JButton btnRefresh;
     private JTextField textFilter;
     private JButton clearButton;
-    private JCheckBox nameCheckBox;
-    private JCheckBox unsortedCheckBox;
+    private JRadioButton radioSortName;
+    private JRadioButton radioSortUnsorted;
 
     public VectorDrawablesView() {
 
@@ -35,6 +33,18 @@ public class VectorDrawablesView {
 
     public JTextField getTextFilter() {
         return textFilter;
+    }
+
+    public JRadioButton getRadioSortName() {
+        return radioSortName;
+    }
+
+    public JRadioButton getRadioSortUnsorted() {
+        return radioSortUnsorted;
+    }
+
+    public JButton getClearButton() {
+        return clearButton;
     }
 
     private void createUIComponents() {

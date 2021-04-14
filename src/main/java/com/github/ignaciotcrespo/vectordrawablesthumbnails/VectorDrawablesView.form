@@ -65,7 +65,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="ad184" class="javax.swing.JCheckBox" binding="nameCheckBox" default-binding="true">
+                      <component id="1a43" class="javax.swing.JRadioButton" binding="radioSortName">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                           <gridbag weightx="0.0" weighty="0.0"/>
@@ -74,12 +74,13 @@
                           <text value="Name"/>
                         </properties>
                       </component>
-                      <component id="5c366" class="javax.swing.JCheckBox" binding="unsortedCheckBox" default-binding="true">
+                      <component id="3615d" class="javax.swing.JRadioButton" binding="radioSortUnsorted">
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                           <gridbag weightx="0.0" weighty="0.0"/>
                         </constraints>
                         <properties>
+                          <selected value="true"/>
                           <text value="Unsorted"/>
                         </properties>
                       </component>
@@ -106,4 +107,10 @@
       </grid>
     </children>
   </grid>
+  <buttonGroups>
+    <group name="buttonGroupSort">
+      <member id="3615d"/>
+      <member id="1a43"/>
+    </group>
+  </buttonGroups>
 </form>

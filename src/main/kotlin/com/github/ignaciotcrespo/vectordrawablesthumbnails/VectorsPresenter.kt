@@ -20,6 +20,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 internal class VectorsPresenter {
+    private var sort = SortByItem.UNSORTED
     private var filterText: String? = null
     private val uiEvents = PublishSubject.create<UiEvent>()
     val presenterEvents = PublishSubject.create<PresenterEvent>()
@@ -171,10 +172,20 @@ internal class VectorsPresenter {
         this.filterText = text?.toLowerCase()
     }
 
-    fun itemsFiltered() = if (filterText.isNullOrEmpty()) {
-        ArrayList(items)
-    } else {
-        ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
+    fun itemsFiltered(): List<VectorItem> {
+        val arrayList = if (filterText.isNullOrEmpty()) {
+            ArrayList(items)
+        } else {
+            ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
+        }
+        if (sort == SortByItem.NAME) {
+            arrayList.sortBy { it.name }
+        }
+        return arrayList
+    }
+
+    fun sortBy(sort: SortByItem) {
+        this.sort = sort
     }
 
     init {
@@ -195,4 +206,9 @@ internal class VectorsPresenter {
             .doOnError { x: Throwable? -> println(x) }
             .subscribe { ui: VectorClickedUiEvent -> Utils.openValidFile(ui.project, ui.item.validFile) }
     }
+}
+
+enum class SortByItem {
+    NAME,
+    UNSORTED
 }

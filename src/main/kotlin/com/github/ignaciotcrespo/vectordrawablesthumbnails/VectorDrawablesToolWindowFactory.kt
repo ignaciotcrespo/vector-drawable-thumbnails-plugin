@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import java.awt.event.ItemEvent.SELECTED
 import javax.swing.ImageIcon
 import javax.swing.JButton
 import javax.swing.JLabel
@@ -40,6 +41,23 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
             }
 
         })
+        view.clearButton.addActionListener {
+            view.textFilter.text = ""
+        }
+        view.radioSortName.addItemListener {
+            if (it.stateChange == SELECTED) {
+                presenter.sortBy(SortByItem.NAME)
+                view.panelVectors.removeAll()
+                showItems(presenter, project, view)
+            }
+        }
+        view.radioSortUnsorted.addItemListener {
+            if (it.stateChange == SELECTED) {
+                presenter.sortBy(SortByItem.UNSORTED)
+                view.panelVectors.removeAll()
+                showItems(presenter, project, view)
+            }
+        }
 
         showContent(toolWindow, view.content)
         presenter.presenterEvents
