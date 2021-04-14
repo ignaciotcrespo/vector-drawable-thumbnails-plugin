@@ -49,43 +49,51 @@
                   <text value="Filter"/>
                 </properties>
               </component>
-              <grid id="299f1" layout-manager="BorderLayout" hgap="0" vgap="0">
+              <grid id="a9e73" layout-manager="GridBagLayout">
                 <constraints border-constraint="North"/>
                 <properties/>
                 <border type="none"/>
                 <children>
+                  <component id="1a43" class="javax.swing.JRadioButton" binding="radioSortName">
+                    <constraints>
+                      <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <text value="Name"/>
+                    </properties>
+                  </component>
+                  <component id="3615d" class="javax.swing.JRadioButton" binding="radioSortUnsorted">
+                    <constraints>
+                      <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <selected value="true"/>
+                      <text value="Unsorted"/>
+                    </properties>
+                  </component>
                   <component id="e05b4" class="javax.swing.JLabel">
-                    <constraints border-constraint="West"/>
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
                     <properties>
                       <text value="Sort By"/>
                     </properties>
                   </component>
-                  <grid id="a9e73" layout-manager="GridBagLayout">
-                    <constraints border-constraint="Center"/>
-                    <properties/>
-                    <border type="none"/>
-                    <children>
-                      <component id="1a43" class="javax.swing.JRadioButton" binding="radioSortName">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                          <gridbag weightx="0.0" weighty="0.0"/>
-                        </constraints>
-                        <properties>
-                          <text value="Name"/>
-                        </properties>
-                      </component>
-                      <component id="3615d" class="javax.swing.JRadioButton" binding="radioSortUnsorted">
-                        <constraints>
-                          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                          <gridbag weightx="0.0" weighty="0.0"/>
-                        </constraints>
-                        <properties>
-                          <selected value="true"/>
-                          <text value="Unsorted"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
+                  <vspacer id="a3ce0">
+                    <constraints>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                  </vspacer>
+                  <vspacer id="d1c0">
+                    <constraints>
+                      <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                  </vspacer>
                 </children>
               </grid>
             </children>

@@ -4,11 +4,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import java.awt.BorderLayout
 import java.awt.event.ItemEvent.SELECTED
+import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
 import javax.swing.ImageIcon
-import javax.swing.JButton
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.SwingConstants
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
@@ -88,17 +91,33 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     ) {
         presenter.itemsFiltered().forEach { item ->
             val component = ImageIcon(item.image)
-            val button = JButton(component)
-            button.text = item.name
-            button.horizontalTextPosition = JLabel.CENTER
-            button.verticalTextPosition = JLabel.BOTTOM
-            button.verticalAlignment = JLabel.BOTTOM
-            button.addActionListener {
-                presenter.onVectorClicked(
-                    project,
-                    item
-                )
-            }
+            val button = JPanel()
+            button.layout = BorderLayout()
+            button.add(BorderLayout.NORTH, JLabel(component))
+            button.add(BorderLayout.CENTER, JLabel(item.name).also { it.horizontalAlignment = SwingConstants.CENTER })
+            button.add(
+                BorderLayout.SOUTH,
+                JLabel("${item.viewportW} x ${item.viewportH}").also { it.horizontalAlignment = SwingConstants.CENTER })
+            button.addMouseListener(object : MouseListener {
+                override fun mouseClicked(e: MouseEvent?) {
+                    presenter.onVectorClicked(
+                        project,
+                        item
+                    )
+                }
+
+                override fun mousePressed(e: MouseEvent?) {
+                }
+
+                override fun mouseReleased(e: MouseEvent?) {
+                }
+
+                override fun mouseEntered(e: MouseEvent?) {
+                }
+
+                override fun mouseExited(e: MouseEvent?) {
+                }
+            })
             view.panelVectors.add(button)
         }
         view.panelVectors.revalidate()

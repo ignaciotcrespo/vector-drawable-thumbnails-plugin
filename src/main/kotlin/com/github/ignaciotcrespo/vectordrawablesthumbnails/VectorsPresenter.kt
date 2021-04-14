@@ -139,13 +139,20 @@ internal class VectorsPresenter {
                 if (xml.contains("@color/")) {
                     xml = xml.replace("@color/\\w+".toRegex(), "#000000")
                 }
-                bmp = VdPreview.getPreviewFromVectorXml(
-                    VdPreview.TargetSize.createSizeFromWidth(50),
-                    xml,
-                    StringBuilder()
-                )
-                if (bmp != null) {
-                    emitter.onNext(VectorItem(file.file.name, bmp, file))
+                val log = StringBuilder()
+                val doc = VdPreview.parseVdStringIntoDocument(xml, log)
+                val documentElement = doc.documentElement
+                if (documentElement.tagName == "vector") {
+                    val viewportW = documentElement.getAttribute("android:viewportWidth")?.toIntOrNull() ?: 0
+                    val viewportH = documentElement.getAttribute("android:viewportHeight")?.toIntOrNull() ?: 0
+                    bmp = VdPreview.getPreviewFromVectorDocument(
+                        VdPreview.TargetSize.createSizeFromWidth(50),
+                        doc,
+                        log
+                    )
+                    if (bmp != null) {
+                        emitter.onNext(VectorItem(file.file.name, bmp, file, viewportW, viewportH))
+                    }
                 }
             }
         } catch (t: Throwable) {
