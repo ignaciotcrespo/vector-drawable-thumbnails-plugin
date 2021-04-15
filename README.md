@@ -17,7 +17,7 @@
     Display all android vector drawables in the entire project
     Click on the thumbnail to open the xml file
 
-    How to use: Go to menu View > Tool Windows > Vector Thumbnails
+    How to use: Go to menu View > Tool Windows > Vector Drawable Thumbnails
 
     [Donations are welcomed](https://paypal.me/itcrespo)
 
