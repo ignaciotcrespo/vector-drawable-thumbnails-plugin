@@ -1,6 +1,5 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails;
 
-import com.intellij.icons.AllIcons;
 import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
@@ -13,10 +12,10 @@ public class VectorDrawablesView {
     private JButton btnRefresh;
     private JTextField textFilter;
     private JButton clearButton;
-    private JRadioButton radioSortName;
-    private JRadioButton radioSortUnsorted;
     private JPanel panelFilter;
     private JButton btnDonate;
+    private JComboBox comboSort;
+    private JComboBox comboSortDirection;
 
     public VectorDrawablesView() {
 
@@ -38,14 +37,6 @@ public class VectorDrawablesView {
         return textFilter;
     }
 
-    public JRadioButton getRadioSortName() {
-        return radioSortName;
-    }
-
-    public JRadioButton getRadioSortUnsorted() {
-        return radioSortUnsorted;
-    }
-
     public JButton getClearButton() {
         return clearButton;
     }
@@ -56,6 +47,14 @@ public class VectorDrawablesView {
 
     public JButton getBtnDonate() {
         return btnDonate;
+    }
+
+    public JComboBox getComboSort() {
+        return comboSort;
+    }
+
+    public JComboBox getComboSortDirection() {
+        return comboSortDirection;
     }
 
     private void createUIComponents() {

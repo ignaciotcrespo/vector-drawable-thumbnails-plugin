@@ -61,51 +61,39 @@
                   </component>
                 </children>
               </grid>
-              <grid id="a9e73" layout-manager="GridBagLayout">
+              <grid id="a9e73" layout-manager="BorderLayout" hgap="0" vgap="0">
                 <constraints border-constraint="North"/>
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <component id="1a43" class="javax.swing.JRadioButton" binding="radioSortName">
-                    <constraints>
-                      <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                      <gridbag weightx="0.0" weighty="0.0"/>
-                    </constraints>
-                    <properties>
-                      <text value="Name"/>
-                    </properties>
-                  </component>
-                  <component id="3615d" class="javax.swing.JRadioButton" binding="radioSortUnsorted">
-                    <constraints>
-                      <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                      <gridbag weightx="0.0" weighty="0.0"/>
-                    </constraints>
-                    <properties>
-                      <selected value="true"/>
-                      <text value="Unsorted"/>
-                    </properties>
-                  </component>
                   <component id="e05b4" class="javax.swing.JLabel">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-                      <gridbag weightx="0.0" weighty="0.0"/>
-                    </constraints>
+                    <constraints border-constraint="West"/>
                     <properties>
                       <text value="Sort By"/>
                     </properties>
                   </component>
-                  <vspacer id="a3ce0">
-                    <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                      <gridbag weightx="0.0" weighty="0.0"/>
-                    </constraints>
-                  </vspacer>
-                  <vspacer id="d1c0">
-                    <constraints>
-                      <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                      <gridbag weightx="0.0" weighty="0.0"/>
-                    </constraints>
-                  </vspacer>
+                  <component id="a4e35" class="javax.swing.JComboBox" binding="comboSort">
+                    <constraints border-constraint="Center"/>
+                    <properties>
+                      <model>
+                        <item value="Unsorted"/>
+                        <item value="By Name"/>
+                        <item value="By Width"/>
+                        <item value="By Height"/>
+                        <item value="By Width x Height"/>
+                        <item value="By File Size"/>
+                      </model>
+                    </properties>
+                  </component>
+                  <component id="29a96" class="javax.swing.JComboBox" binding="comboSortDirection">
+                    <constraints border-constraint="East"/>
+                    <properties>
+                      <model>
+                        <item value="Asc"/>
+                        <item value="Desc"/>
+                      </model>
+                    </properties>
+                  </component>
                 </children>
               </grid>
             </children>
@@ -131,6 +119,8 @@
     <group name="buttonGroupSort">
       <member id="3615d"/>
       <member id="1a43"/>
+      <member id="93d61"/>
+      <member id="dc035"/>
     </group>
   </buttonGroups>
 </form>

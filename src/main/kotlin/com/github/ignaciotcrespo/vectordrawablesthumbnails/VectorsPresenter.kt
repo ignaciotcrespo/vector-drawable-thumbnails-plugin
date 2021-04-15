@@ -11,15 +11,15 @@ import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
-import org.apache.commons.io.IOUtils
 import java.awt.image.BufferedImage
+import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 internal class VectorsPresenter {
-    private var sort = SortByItem.UNSORTED
+    private var sortDirection: String? = null
+    private var sort: String? = null
     private var filterText: String? = null
     private val uiEvents = PublishSubject.create<UiEvent>()
     val presenterEvents = PublishSubject.create<PresenterEvent>()
@@ -129,10 +129,8 @@ internal class VectorsPresenter {
 
     private fun searchVectors(emitter: Emitter<VectorItem?>, file: ValidFile) {
         var bmp: BufferedImage? = null
-        var inputStream: FileInputStream? = null
         try {
-            inputStream = FileInputStream(file.file)
-            var xml = IOUtils.toString(inputStream, Charsets.UTF_8)
+            var xml = FileInputStream(file.file).bufferedReader().use(BufferedReader::readText)
             if (xml.contains("</vector>")) {
                 if (xml.contains("@color/")) {
                     xml = xml.replace("@color/\\w+".toRegex(), "#000000")
@@ -149,18 +147,13 @@ internal class VectorsPresenter {
                         log
                     )
                     if (bmp != null) {
-                        emitter.onNext(VectorItem(file.file.name, bmp, file, viewportW, viewportH))
+                        emitter.onNext(VectorItem(file.file.name, bmp, file, viewportW, viewportH, file.file.length()))
                     }
                 }
             }
         } catch (t: Throwable) {
             println(t)
         } finally {
-            try {
-                inputStream!!.close()
-            } catch (e1: IOException) {
-                e1.printStackTrace()
-            }
             emitter.onComplete()
         }
     }
@@ -181,13 +174,34 @@ internal class VectorsPresenter {
         filterText.isNullOrEmpty() -> ArrayList(items)
         else -> ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
     }.also {
-        if (sort == SortByItem.NAME) {
-            it.sortBy { it.name }
+        when (sortDirection) {
+            "Desc" -> {
+                when (sort) {
+                    "By Name" -> it.sortByDescending { it.name }
+                    "By Width" -> it.sortByDescending { it.viewportW }
+                    "By Height" -> it.sortByDescending { it.viewportH }
+                    "By Width x Height" -> it.sortByDescending { it.viewportW * it.viewportH }
+                    "By File Size" -> it.sortByDescending { it.fileSize }
+                }
+            }
+            else -> {
+                when (sort) {
+                    "By Name" -> it.sortBy { it.name }
+                    "By Width" -> it.sortBy { it.viewportW }
+                    "By Height" -> it.sortBy { it.viewportH }
+                    "By Width x Height" -> it.sortBy { it.viewportW * it.viewportH }
+                    "By File Size" -> it.sortBy { it.fileSize }
+                }
+            }
         }
     }
 
-    fun sortBy(sort: SortByItem) {
+    fun sortBy2(sort: String) {
         this.sort = sort
+    }
+
+    fun sortByDirection(direction: String) {
+        this.sortDirection = direction
     }
 
     init {
@@ -208,9 +222,4 @@ internal class VectorsPresenter {
             .doOnError { x: Throwable? -> println(x) }
             .subscribe { ui: VectorClickedUiEvent -> Utils.openValidFile(ui.project, ui.item.validFile) }
     }
-}
-
-enum class SortByItem {
-    NAME,
-    UNSORTED
 }

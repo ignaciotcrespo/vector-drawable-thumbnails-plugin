@@ -8,7 +8,6 @@ import java.awt.BorderLayout
 import java.awt.BorderLayout.NORTH
 import java.awt.BorderLayout.SOUTH
 import java.awt.Desktop
-import java.awt.event.ItemEvent.SELECTED
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.net.URL
@@ -54,17 +53,13 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
         view.clearButton.addActionListener {
             view.textFilter.text = ""
         }
-        view.radioSortName.addItemListener {
-            if (it.stateChange == SELECTED) {
-                presenter.sortBy(SortByItem.NAME)
-                showItems(presenter, project, view)
-            }
+        view.comboSort.addActionListener {
+            presenter.sortBy2(view.comboSort.selectedItem?.toString() ?: "")
+            showItems(presenter, project, view)
         }
-        view.radioSortUnsorted.addItemListener {
-            if (it.stateChange == SELECTED) {
-                presenter.sortBy(SortByItem.UNSORTED)
-                showItems(presenter, project, view)
-            }
+        view.comboSortDirection.addActionListener {
+            presenter.sortByDirection(view.comboSortDirection.selectedItem?.toString() ?: "")
+            showItems(presenter, project, view)
         }
 
         showContent(toolWindow, view.content)
