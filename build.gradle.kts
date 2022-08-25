@@ -119,7 +119,7 @@ intellijPlatform {
             // Test against recommended IDE versions
             recommended()
         }
-        
+
         // Basic verification options
         freeArgs.set(listOf(
             "-mute", "TemplateWordInPluginName",
@@ -160,36 +160,36 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
-    
+
     // Enhanced testing for compatibility
     test {
         useJUnitPlatform()
-        
+
         // Test with different system properties to simulate different IDEs
         systemProperty("idea.platform.prefix", "Idea")
         systemProperty("idea.test.cyclic.buffer.size", "1048576")
-        
+
         // Memory settings for testing
         minHeapSize = "256m"
         maxHeapSize = "2g"
-        
+
         // Enable parallel test execution
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).takeIf { it > 0 } ?: 1
     }
-    
+
     // Custom task for compatibility testing - simplified
     register("compatibilityTest") {
         group = "verification"
         description = "Run comprehensive compatibility tests across JetBrains IDEs"
-        
+
         dependsOn("test")
-        
+
         doLast {
             println("✅ Compatibility testing completed successfully!")
             println("🎯 Plugin is compatible with all major JetBrains IDEs")
         }
     }
-    
+
     // Simplified build task
     build {
         // Remove dependency on compatibilityTest for now
@@ -218,20 +218,20 @@ intellijPlatformTesting {
                 robotServerPlugin()
             }
         }
-        
+
         // Additional IDE configurations for testing
         register("runAndroidStudio") {
             task {
                 systemProperty("idea.platform.prefix", "AndroidStudio")
             }
         }
-        
+
         register("runWebStorm") {
             task {
                 systemProperty("idea.platform.prefix", "WebStorm")
             }
         }
-        
+
         register("runPyCharm") {
             task {
                 systemProperty("idea.platform.prefix", "PyCharmCore")
