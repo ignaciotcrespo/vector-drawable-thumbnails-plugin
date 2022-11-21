@@ -29,7 +29,7 @@ repositories {
     jcenter()
 }
 dependencies {
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.16.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation(files("lib/sdk-common.jar"))
     implementation(files("lib/android-base-common.jar"))
