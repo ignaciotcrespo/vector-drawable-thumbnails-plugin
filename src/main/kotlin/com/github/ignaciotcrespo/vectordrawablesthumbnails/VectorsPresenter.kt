@@ -11,11 +11,15 @@ import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import org.w3c.dom.Document
+import org.xml.sax.InputSource
 import java.awt.image.BufferedImage
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
+import java.io.StringReader
 import java.util.concurrent.TimeUnit
+import javax.xml.parsers.DocumentBuilderFactory
 
 internal class VectorsPresenter {
     private var sortDirection: String? = null
@@ -136,13 +140,13 @@ internal class VectorsPresenter {
                     xml = xml.replace("@color/\\w+".toRegex(), "#000000")
                 }
                 val log = StringBuilder()
-                val doc = VdPreview.parseVdStringIntoDocument(xml, log)
-                val documentElement = doc.documentElement
-                if (documentElement.tagName == "vector") {
+                val doc = parseVdStringIntoDocument(xml, log)
+                val documentElement = doc?.documentElement
+                if (documentElement?.tagName == "vector") {
                     val viewportW = documentElement.getAttribute("android:viewportWidth")?.toIntOrNull() ?: 0
                     val viewportH = documentElement.getAttribute("android:viewportHeight")?.toIntOrNull() ?: 0
                     bmp = VdPreview.getPreviewFromVectorDocument(
-                        VdPreview.TargetSize.createSizeFromWidth(50),
+                        VdPreview.TargetSize.createFromMaxDimension(50),
                         doc,
                         log
                     )
@@ -155,6 +159,20 @@ internal class VectorsPresenter {
             println(t)
         } finally {
             emitter.onComplete()
+        }
+    }
+
+    fun parseVdStringIntoDocument(xmlFileContent: String?, errorLog: java.lang.StringBuilder?): Document? {
+        val dbf = DocumentBuilderFactory.newInstance()
+
+        try {
+            val db = dbf.newDocumentBuilder()
+            val document = db.parse(InputSource(StringReader(xmlFileContent)))
+            return document
+        } catch (var6: Exception) {
+            errorLog?.append("Exception while parsing XML file:\n")?.append(var6.message)
+
+            return null
         }
     }
 
