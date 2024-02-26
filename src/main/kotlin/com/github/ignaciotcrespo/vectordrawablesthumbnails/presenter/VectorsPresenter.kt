@@ -1,6 +1,13 @@
-package com.github.ignaciotcrespo.vectordrawablesthumbnails
+package com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter
 
 import com.android.ide.common.vectordrawable.VdPreview
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.events.RefreshUiEvent
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.events.UiEvent
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.events.VectorClickedUiEvent
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.RxUtils
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.Utils
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
@@ -188,7 +195,7 @@ internal class VectorsPresenter {
         this.filterText = text?.toLowerCase()
     }
 
-    fun itemsFiltered() = when {
+    fun itemsFiltered(): java.util.ArrayList<VectorItem> = when {
         filterText.isNullOrEmpty() -> ArrayList(items)
         else -> ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
     }.also {

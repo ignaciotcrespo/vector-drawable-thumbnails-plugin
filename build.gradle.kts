@@ -13,11 +13,8 @@ repositories {
 }
 
 dependencies {
-//    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.16.0")
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("com.android.tools:sdk-common:31.2.2")
-//    implementation(files("lib/sdk-common.jar"))
-//    implementation(files("lib/android-base-common.jar"))
 }
 
 // Configure Gradle IntelliJ Plugin

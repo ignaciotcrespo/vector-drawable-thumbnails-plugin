@@ -1,5 +1,6 @@
-package com.github.ignaciotcrespo.vectordrawablesthumbnails
+package com.github.ignaciotcrespo.vectordrawablesthumbnails.utils
 
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.fileEditor.FileEditorManager

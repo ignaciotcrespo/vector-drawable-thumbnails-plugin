@@ -1,4 +1,4 @@
-package com.github.ignaciotcrespo.vectordrawablesthumbnails
+package com.github.ignaciotcrespo.vectordrawablesthumbnails.model
 
 import java.awt.image.BufferedImage
 

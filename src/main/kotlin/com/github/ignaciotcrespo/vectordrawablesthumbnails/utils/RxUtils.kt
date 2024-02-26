@@ -1,4 +1,4 @@
-package com.github.ignaciotcrespo.vectordrawablesthumbnails
+package com.github.ignaciotcrespo.vectordrawablesthumbnails.utils
 
 import io.reactivex.Observable
 import io.reactivex.ObservableTransformer
