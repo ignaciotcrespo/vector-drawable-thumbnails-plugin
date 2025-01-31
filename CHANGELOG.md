@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-## [Released] 1.2.3-SNAPSHOT
+## [Released] 1.2.5
 
 ### Changed
 
