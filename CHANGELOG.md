@@ -2,6 +2,8 @@
 
 # vector-drawable-thumbnails-plugin Changelog
 
+## [Released] 1.2.0
+
 ## [Released] 1.0.5
 ### Added
 - added more sorting options

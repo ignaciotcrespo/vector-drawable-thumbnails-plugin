@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.ignaciotcrespo.vectordrawablethumbnailsplugin"
-version = "1.0.5"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
