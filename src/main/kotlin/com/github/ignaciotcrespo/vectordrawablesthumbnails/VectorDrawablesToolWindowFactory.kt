@@ -170,9 +170,11 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
 
     private fun showContent(toolWindow: ToolWindow, panel: JPanel) {
         val contentFactory = kotlin.runCatching { ContentFactory.getInstance() }
-            .getOrElse { ContentFactory.SERVICE.getInstance() }
-        val content = contentFactory.createContent(panel, "", false)
-        toolWindow.contentManager.addContent(content)
+            .getOrNull()
+        val content = contentFactory?.createContent(panel, "", false)
+        content?.apply {
+            toolWindow.contentManager.addContent(content)
+        }
     }
 
 }
