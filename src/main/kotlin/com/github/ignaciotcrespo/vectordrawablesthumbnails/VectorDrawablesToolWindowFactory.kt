@@ -4,146 +4,95 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
-import java.awt.BorderLayout
-import java.awt.BorderLayout.NORTH
-import java.awt.BorderLayout.SOUTH
 import java.awt.Desktop
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
 import java.net.URL
-import javax.swing.ImageIcon
-import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.SwingConstants
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.filter.VectorItemNameFilter
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.sorter.VectorItemPropertySorter
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.view.IVectorDrawablesView
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.view.SwingVectorDrawablesView
+import io.reactivex.schedulers.Schedulers
 
 class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val presenter = VectorsPresenter()
-        val view = VectorDrawablesView()
+        val view: IVectorDrawablesView = SwingVectorDrawablesView()
+        val presenter = VectorsPresenter(
+            ProjectVectorFileProvider(),
+            XmlVectorAttributeParser(),
+            VdPreviewRenderer(),
+            VectorItemNameFilter(),
+            VectorItemPropertySorter(),
+            Schedulers.io(),
+            Schedulers.newThread() // Consider Schedulers.computation() for CPU-bound tasks if newThread() is too heavy
+        )
 
-        view.btnDonate.addActionListener {
+        view.addDonateButtonListener {
             try {
                 Desktop.getDesktop().browse(URL("https://paypal.me/itcrespo").toURI())
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-        view.btnRefresh.addActionListener {
+
+        view.addRefreshButtonListener {
             presenter.refreshPropertiesData(project, false)
         }
-        view.textFilter.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent?) {
-                presenter.filter(view.textFilter.text)
-                showItems(presenter, project, view)
-            }
 
-            override fun removeUpdate(e: DocumentEvent?) {
-                presenter.filter(view.textFilter.text)
-                showItems(presenter, project, view)
-            }
-
-            override fun changedUpdate(e: DocumentEvent) {
-                presenter.filter(view.textFilter.text)
-                showItems(presenter, project, view)
-            }
-
-        })
-        view.clearButton.addActionListener {
-            view.textFilter.text = ""
-        }
-        view.comboSort.addActionListener {
-            presenter.sortBy2(view.comboSort.selectedItem?.toString() ?: "")
-            showItems(presenter, project, view)
-        }
-        view.comboSortDirection.addActionListener {
-            presenter.sortByDirection(view.comboSortDirection.selectedItem?.toString() ?: "")
-            showItems(presenter, project, view)
+        view.addFilterTextChangeListener { newText ->
+            presenter.filter(newText)
+            showItemsBasedOnPresenterState(presenter, project, view)
         }
 
-        showContent(toolWindow, view.content)
+        view.addClearFilterButtonListener {
+            view.setFilterText("") // This will trigger the filter text change listener
+        }
+
+        view.addSortPropertyChangeListener { selectedProperty ->
+            presenter.sortBy2(selectedProperty)
+            showItemsBasedOnPresenterState(presenter, project, view)
+        }
+
+        view.addSortDirectionChangeListener { selectedDirection ->
+            presenter.sortByDirection(selectedDirection)
+            showItemsBasedOnPresenterState(presenter, project, view)
+        }
+
+        // Subscribe to presenter events to update the view
         presenter.presenterEvents
             .ofType(VectorFoundPresenterEvent::class.java)
-            .doOnNext { vector: VectorFoundPresenterEvent ->
+            .subscribe {
+                // Individual item found - could update view incrementally
+                // For now, full refresh on IDLE state handles this.
             }
-            .doOnComplete {
-            }
-            .subscribe()
+
         presenter.presenterEvents
             .ofType(VectorStatePresenterEvent::class.java)
-            .doOnNext { event: VectorStatePresenterEvent ->
-                if (event.state == VectorStatePresenterEvent.State.SEARCHING) {
-                    view.btnRefresh.text = "Searching, please wait..."
-                    view.panelFilter.enableAll(false)
-                } else {
-                    showItems(presenter, project, view)
-                    view.btnRefresh.text = "Refresh"
-                    view.panelFilter.enableAll(true)
+            .subscribe { event ->
+                when (event.state) {
+                    VectorStatePresenterEvent.State.SEARCHING -> {
+                        view.showLoading(true, "Searching, please wait...")
+                    }
+                    VectorStatePresenterEvent.State.IDLE -> {
+                        view.showLoading(false, "Refresh") // Reset button text
+                        showItemsBasedOnPresenterState(presenter, project, view)
+                    }
                 }
             }
-            .subscribe()
-        presenter.refreshPropertiesData(project)
+
+        showContent(toolWindow, view.getRootPanel())
+        presenter.refreshPropertiesData(project) // Initial refresh
     }
 
-    private fun JPanel.enableAll(isEnabled: Boolean) {
-        this.isEnabled = isEnabled
-        for (component in this.components) {
-            if (component is JPanel) {
-                component.enableAll(isEnabled)
-            }
-            component.isEnabled = isEnabled
-        }
-    }
-
-    private fun showItems(
+    private fun showItemsBasedOnPresenterState(
         presenter: VectorsPresenter,
         project: Project,
-        view: VectorDrawablesView
+        view: IVectorDrawablesView
     ) {
-        view.panelVectors.removeAll()
-        presenter.itemsFiltered().forEach { item ->
-            val component = ImageIcon(item.image)
-            val button = JPanel()
-            button.layout = BorderLayout()
-            button.add(NORTH, JPanel().also { jpanel ->
-                jpanel.layout = BorderLayout()
-                jpanel.add(NORTH, JLabel(component))
-                jpanel.add(SOUTH, JPanel().apply {
-                    layout = BorderLayout()
-                    add(NORTH, JLabel(item.name).apply {
-                        horizontalAlignment = SwingConstants.CENTER
-                    })
-                    add(SOUTH, JLabel("${item.viewportW} x ${item.viewportH}").apply {
-                        horizontalAlignment = SwingConstants.CENTER
-                    })
-                })
-            })
-            button.addMouseListener(object : MouseListener {
-                override fun mouseClicked(e: MouseEvent?) {
-                    presenter.onVectorClicked(
-                        project,
-                        item
-                    )
-                }
-
-                override fun mousePressed(e: MouseEvent?) {
-                }
-
-                override fun mouseReleased(e: MouseEvent?) {
-                }
-
-                override fun mouseEntered(e: MouseEvent?) {
-                }
-
-                override fun mouseExited(e: MouseEvent?) {
-                }
-            })
-            view.panelVectors.add(button)
+        val itemsToDisplay = presenter.itemsFiltered()
+        view.displayItems(itemsToDisplay) { clickedItem ->
+            presenter.onVectorClicked(project, clickedItem)
         }
-        view.panelVectors.revalidate()
-        // repaint needed to clear when no items
-        view.panelVectors.repaint()
+        // revalidate and repaint are called within SwingVectorDrawablesView.displayItems
     }
 
     private fun showContent(toolWindow: ToolWindow, panel: JPanel) {
@@ -151,5 +100,4 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
         val content = contentFactory.createContent(panel, "", false)
         toolWindow.contentManager.addContent(content)
     }
-
 }
