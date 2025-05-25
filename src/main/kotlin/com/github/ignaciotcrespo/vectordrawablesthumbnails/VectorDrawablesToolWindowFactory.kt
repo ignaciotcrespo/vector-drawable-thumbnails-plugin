@@ -1,9 +1,16 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails
 
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.VectorFoundPresenterEvent
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.VectorStatePresenterEvent
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.VectorsPresenter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import java.awt.BorderLayout.NORTH
 import java.awt.BorderLayout.SOUTH
@@ -86,6 +93,20 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
         presenter.refreshPropertiesData(project)
     }
 
+    private fun showItems(
+        presenter: VectorsPresenter,
+        project: Project,
+        view: VectorDrawablesView
+    ) {
+        // this is stupid, optimize performance caching the jpanel buttons and sorting them
+        GlobalScope.launch(Dispatchers.Default) {
+            val items = presenter.itemsFiltered()
+            GlobalScope.launch(Dispatchers.Main) {
+                showItems(presenter, project, view, items)
+            }
+        }
+    }
+
     private fun JPanel.enableAll(isEnabled: Boolean) {
         this.isEnabled = isEnabled
         for (component in this.components) {
@@ -99,10 +120,11 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     private fun showItems(
         presenter: VectorsPresenter,
         project: Project,
-        view: VectorDrawablesView
+        view: VectorDrawablesView,
+        items: java.util.ArrayList<VectorItem>
     ) {
         view.panelVectors.removeAll()
-        presenter.itemsFiltered().forEach { item ->
+        items.forEach { item ->
             val component = ImageIcon(item.image)
             val button = JPanel()
             button.layout = BorderLayout()
@@ -147,9 +169,12 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     }
 
     private fun showContent(toolWindow: ToolWindow, panel: JPanel) {
-        val contentFactory = ContentFactory.SERVICE.getInstance()
-        val content = contentFactory.createContent(panel, "", false)
-        toolWindow.contentManager.addContent(content)
+        val contentFactory = kotlin.runCatching { ContentFactory.getInstance() }
+            .getOrNull()
+        val content = contentFactory?.createContent(panel, "", false)
+        content?.apply {
+            toolWindow.contentManager.addContent(content)
+        }
     }
 
 }

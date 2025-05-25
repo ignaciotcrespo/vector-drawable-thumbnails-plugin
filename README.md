@@ -19,7 +19,7 @@
 
     How to use: Go to menu View > Tool Windows > Vector Drawable Thumbnails
 
-    [Donations are welcomed](https://paypal.me/itcrespo)
+    [Donations are welcome!](https://paypal.me/itcrespo)
 
 <!-- Plugin description end -->
 
