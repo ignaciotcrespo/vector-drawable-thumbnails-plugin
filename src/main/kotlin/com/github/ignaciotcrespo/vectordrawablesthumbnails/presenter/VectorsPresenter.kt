@@ -1,62 +1,59 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter
 
-import com.android.ide.common.vectordrawable.VdPreview
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.parser.IVectorDrawableParser
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.parser.VectorDrawableParser
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.scanners.IProjectFileScanner
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.scanners.ProjectFileScanner
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.events.RefreshUiEvent
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.events.UiEvent
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.events.VectorClickedUiEvent
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.RxUtils
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.Utils
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFile
-import io.reactivex.Emitter
 import io.reactivex.Observable
-import io.reactivex.ObservableEmitter
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
-import org.w3c.dom.Document
-import org.xml.sax.InputSource
-import java.awt.image.BufferedImage
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileInputStream
-import java.io.StringReader
 import java.util.concurrent.TimeUnit
-import javax.xml.parsers.DocumentBuilderFactory
 
-internal class VectorsPresenter {
+internal class VectorsPresenter(
+    private val projectFileScanner: IProjectFileScanner,
+    private val vectorDrawableParser: IVectorDrawableParser
+) : IVectorsPresenter {
     private var sortDirection: String? = null
     private var sort: String? = null
     private var filterText: String? = null
     private val uiEvents = PublishSubject.create<UiEvent>()
-    val presenterEvents = PublishSubject.create<PresenterEvent>()
+    override val presenterEvents = PublishSubject.create<PresenterEvent>()
     private var state = VectorStatePresenterEvent.State.IDLE
     private val items = ArrayList<VectorItem>()
 
-    fun refreshPropertiesData(project: Project?, delay: Boolean = true) {
-        uiEvents.onNext(RefreshUiEvent(project!!, delay))
+    override fun refreshPropertiesData(project: Project?, delay: Boolean) {
+        project?.let {
+            uiEvents.onNext(RefreshUiEvent(it, delay))
+        }
     }
 
-    private fun refresh(project: Project, delay: Boolean = true) {
+    private fun refresh(project: Project, delay: Boolean) {
         if (setState(VectorStatePresenterEvent.State.SEARCHING)) {
             items.clear()
-            getValidFilesObservable(project)
+            projectFileScanner.findXmlFiles(project)
                 .delay(if (delay) 2 else 0, TimeUnit.SECONDS)
                 .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.newThread()) //                .doOnNext(tableModel::addItem)
-                .flatMap { f: ValidFile -> getItemsObservable(f) }
+                .observeOn(Schedulers.newThread())
+                .flatMap { validFile -> vectorDrawableParser.parseVector(validFile) }
                 .doOnNext { vectorItem: VectorItem? ->
-                    if (vectorItem != null) {
-                        items.add(vectorItem)
-                        presenterEvents.onNext(VectorFoundPresenterEvent(vectorItem))
+                    vectorItem?.let {
+                        items.add(it)
                     }
-                } //                .doOnSubscribe(disposable -> tableModel.clear())
+                }
                 .doOnComplete { setState(VectorStatePresenterEvent.State.IDLE) }
-                .doOnError { setState(VectorStatePresenterEvent.State.IDLE) }
+                .doOnError {
+                    // Log error appropriately
+                    println("Error during refresh: ${it.message}")
+                    setState(VectorStatePresenterEvent.State.IDLE)
+                }
                 .subscribe()
         }
     }
@@ -70,132 +67,19 @@ internal class VectorsPresenter {
         return false
     }
 
-    private fun getValidFilesObservable(project: Project): Observable<ValidFile> {
-        return Observable.create { emitter: ObservableEmitter<ValidFile> ->
-            try {
-                val modules = ModuleManager.getInstance(project).modules
-                if (modules.isNotEmpty()) {
-                    val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
-                    for (module in modules) {
-                        val excludedRoots = ModuleRootManager.getInstance(
-                            module!!
-                        ).excludeRoots
-                        allExcludedRoots.addAll(listOf(*excludedRoots))
-                    }
-                    val projectRootFolder = modules[0].project.basePath
-                    if (projectRootFolder != null) {
-                        val file1 = File(projectRootFolder)
-                        searchFiles(emitter, file1, projectRootFolder, allExcludedRoots)
-                    }
-                }
-            } finally {
-                emitter.onComplete()
-            }
-        }
-    }
-
-    private fun searchFiles(
-        emitter: ObservableEmitter<ValidFile>,
-        folder: File,
-        projectRootFolder: String,
-        excludedRoots: List<VirtualFile>
-    ) {
-        val files = folder.listFiles()
-        if (files != null) {
-            for (f in files) {
-                if (f.isDirectory) {
-                    if (".gradle" == f.name) {
-                        continue
-                    }
-                    if (".idea" == f.name) {
-                        continue
-                    }
-                    if (f.absolutePath.contains("build") && f.absolutePath.contains("generated")) {
-                        continue
-                    }
-                    if (f.absolutePath.contains("build") && f.absolutePath.contains("intermediates")) {
-                        continue
-                    }
-                    val fVirtual = LocalFileSystem.getInstance().findFileByIoFile(f)
-                    var isExcluded = false
-                    for (excluded in excludedRoots) {
-                        if (excluded == fVirtual) {
-                            isExcluded = true
-                            break
-                        }
-                    }
-                    if (!isExcluded) {
-                        searchFiles(emitter, f, projectRootFolder, excludedRoots)
-                    }
-                } else if (f.toString().endsWith(".xml")) {
-                    emitter.onNext(ValidFile(f, projectRootFolder))
-                }
-            }
-        }
-    }
-
-    private fun getItemsObservable(f: ValidFile): Observable<VectorItem?> {
-        return Observable.create { emitter: ObservableEmitter<VectorItem?> -> searchVectors(emitter, f) }
-    }
-
-    private fun searchVectors(emitter: Emitter<VectorItem?>, file: ValidFile) {
-        var bmp: BufferedImage? = null
-        try {
-            var xml = FileInputStream(file.file).bufferedReader().use(BufferedReader::readText)
-            if (xml.contains("</vector>")) {
-                if (xml.contains("@color/")) {
-                    xml = xml.replace("@color/\\w+".toRegex(), "#000000")
-                }
-                val log = StringBuilder()
-                val doc = parseVdStringIntoDocument(xml, log)
-                val documentElement = doc?.documentElement
-                if (documentElement?.tagName == "vector") {
-                    val viewportW = documentElement.getAttribute("android:viewportWidth")?.toIntOrNull() ?: 0
-                    val viewportH = documentElement.getAttribute("android:viewportHeight")?.toIntOrNull() ?: 0
-                    bmp = VdPreview.getPreviewFromVectorDocument(
-                        VdPreview.TargetSize.createFromMaxDimension(50),
-                        doc,
-                        log
-                    )
-                    if (bmp != null) {
-                        emitter.onNext(VectorItem(file.file.name, bmp, file, viewportW, viewportH, file.file.length()))
-                    }
-                }
-            }
-        } catch (t: Throwable) {
-            println(t)
-        } finally {
-            emitter.onComplete()
-        }
-    }
-
-    fun parseVdStringIntoDocument(xmlFileContent: String?, errorLog: java.lang.StringBuilder?): Document? {
-        val dbf = DocumentBuilderFactory.newInstance()
-
-        try {
-            val db = dbf.newDocumentBuilder()
-            val document = db.parse(InputSource(StringReader(xmlFileContent)))
-            return document
-        } catch (var6: Exception) {
-            errorLog?.append("Exception while parsing XML file:\n")?.append(var6.message)
-
-            return null
-        }
-    }
-
-    fun getPresenterEvents(): Observable<PresenterEvent> {
+    override fun getPresenterEvents(): Observable<PresenterEvent> {
         return presenterEvents
     }
 
-    fun onVectorClicked(project: Project, item: VectorItem) {
+    override fun onVectorClicked(project: Project, item: VectorItem) {
         uiEvents.onNext(VectorClickedUiEvent(project, item))
     }
 
-    fun filter(text: String?) {
+    override fun filter(text: String?) {
         this.filterText = text?.toLowerCase()
     }
 
-    fun itemsFiltered(): java.util.ArrayList<VectorItem> = when {
+    override fun itemsFiltered(): java.util.ArrayList<VectorItem> = when {
         filterText.isNullOrEmpty() -> ArrayList(items)
         else -> ArrayList(items.filter { it.name.toLowerCase().contains(filterText!!) }.toList())
     }.also {
@@ -221,11 +105,11 @@ internal class VectorsPresenter {
         }
     }
 
-    fun sortBy2(sort: String) {
+    override fun sortBy2(sort: String) {
         this.sort = sort
     }
 
-    fun sortByDirection(direction: String) {
+    override fun sortByDirection(direction: String) {
         this.sortDirection = direction
     }
 

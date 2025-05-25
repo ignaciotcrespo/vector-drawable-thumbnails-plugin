@@ -37,6 +37,11 @@ dependencies {
     implementation("com.android.tools:sdk-common:31.2.2")
 
     testImplementation(libs.junit)
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
+    testImplementation("org.mockito:mockito-core:4.5.1")
+    testImplementation("org.mockito:mockito-junit-jupiter:4.5.1")
+    testImplementation("io.reactivex.rxjava2:rxjava:2.2.21") // For testing Observables
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
@@ -137,6 +142,10 @@ tasks {
 
     publishPlugin {
         dependsOn(patchChangelog)
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }
 

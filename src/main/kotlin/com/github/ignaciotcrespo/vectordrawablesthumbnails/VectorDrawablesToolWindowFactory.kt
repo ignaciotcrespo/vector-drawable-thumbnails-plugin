@@ -1,9 +1,14 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails
 
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.parser.VectorDrawableParser
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.IVectorsPresenter
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.VectorFoundPresenterEvent
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.VectorStatePresenterEvent
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.VectorsPresenter
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.scanners.ProjectFileScanner
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.SwingVectorDrawablesView
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.VectorDrawablesView
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
@@ -11,82 +16,55 @@ import com.intellij.ui.content.ContentFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import java.awt.BorderLayout
-import java.awt.BorderLayout.NORTH
-import java.awt.BorderLayout.SOUTH
 import java.awt.Desktop
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
 import java.net.URL
-import javax.swing.ImageIcon
-import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.SwingConstants
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
 
 class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val presenter = VectorsPresenter()
-        val view = VectorDrawablesView()
+        val projectFileScanner = ProjectFileScanner()
+        val vectorDrawableParser = VectorDrawableParser()
+        val presenter: IVectorsPresenter = VectorsPresenter(projectFileScanner, vectorDrawableParser)
+        val view: VectorDrawablesView = SwingVectorDrawablesView()
 
-        view.btnDonate.addActionListener {
+        view.addDonateListener {
             try {
                 Desktop.getDesktop().browse(URL("https://paypal.me/itcrespo").toURI())
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-        view.btnRefresh.addActionListener {
+        view.addRefreshListener {
             presenter.refreshPropertiesData(project, false)
         }
-        view.textFilter.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent?) {
-                presenter.filter(view.textFilter.text)
-                showItems(presenter, project, view)
-            }
-
-            override fun removeUpdate(e: DocumentEvent?) {
-                presenter.filter(view.textFilter.text)
-                showItems(presenter, project, view)
-            }
-
-            override fun changedUpdate(e: DocumentEvent) {
-                presenter.filter(view.textFilter.text)
-                showItems(presenter, project, view)
-            }
-
-        })
-        view.clearButton.addActionListener {
-            view.textFilter.text = ""
-        }
-        view.comboSort.addActionListener {
-            presenter.sortBy2(view.comboSort.selectedItem?.toString() ?: "")
+        view.addFilterChangeListener { currentText ->
+            presenter.filter(currentText)
             showItems(presenter, project, view)
         }
-        view.comboSortDirection.addActionListener {
-            presenter.sortByDirection(view.comboSortDirection.selectedItem?.toString() ?: "")
+        view.addClearFilterListener {
+            view.setFilterText("")
+        }
+        view.addSortCriteriaListener { selectedSort ->
+            presenter.sortBy2(selectedSort)
             showItems(presenter, project, view)
         }
+        view.addSortDirectionListener { selectedDirection ->
+            presenter.sortByDirection(selectedDirection)
+            showItems(presenter, project, view)
+        }
+        view.addVectorClickedListener { item ->
+            presenter.onVectorClicked(project, item)
+        }
 
-        showContent(toolWindow, view.content)
-        presenter.presenterEvents
-            .ofType(VectorFoundPresenterEvent::class.java)
-            .doOnNext { vector: VectorFoundPresenterEvent ->
-            }
-            .doOnComplete {
-            }
-            .subscribe()
+        showContent(toolWindow, view.getContentPanel())
         presenter.presenterEvents
             .ofType(VectorStatePresenterEvent::class.java)
             .doOnNext { event: VectorStatePresenterEvent ->
                 if (event.state == VectorStatePresenterEvent.State.SEARCHING) {
-                    view.btnRefresh.text = "Searching, please wait..."
-                    view.panelFilter.enableAll(false)
+                    view.showLoading(true)
                 } else {
+                    view.showLoading(false)
                     showItems(presenter, project, view)
-                    view.btnRefresh.text = "Refresh"
-                    view.panelFilter.enableAll(true)
                 }
             }
             .subscribe()
@@ -94,87 +72,25 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     }
 
     private fun showItems(
-        presenter: VectorsPresenter,
-        project: Project,
-        view: VectorDrawablesView
+        presenter: com.github.ignaciotcrespo.vectordrawablesthumbnails.presenter.IVectorsPresenter,
+        project: com.intellij.openapi.project.Project,
+        view: com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.VectorDrawablesView
     ) {
-        // this is stupid, optimize performance caching the jpanel buttons and sorting them
         GlobalScope.launch(Dispatchers.Default) {
             val items = presenter.itemsFiltered()
+            // The second showItems method was removed in a previous refactoring,
+            // this call directly updates the view.
             GlobalScope.launch(Dispatchers.Main) {
-                showItems(presenter, project, view, items)
+                view.displayItems(items)
             }
         }
-    }
-
-    private fun JPanel.enableAll(isEnabled: Boolean) {
-        this.isEnabled = isEnabled
-        for (component in this.components) {
-            if (component is JPanel) {
-                component.enableAll(isEnabled)
-            }
-            component.isEnabled = isEnabled
-        }
-    }
-
-    private fun showItems(
-        presenter: VectorsPresenter,
-        project: Project,
-        view: VectorDrawablesView,
-        items: java.util.ArrayList<VectorItem>
-    ) {
-        view.panelVectors.removeAll()
-        items.forEach { item ->
-            val component = ImageIcon(item.image)
-            val button = JPanel()
-            button.layout = BorderLayout()
-            button.add(NORTH, JPanel().also { jpanel ->
-                jpanel.layout = BorderLayout()
-                jpanel.add(NORTH, JLabel(component))
-                jpanel.add(SOUTH, JPanel().apply {
-                    layout = BorderLayout()
-                    add(NORTH, JLabel(item.name).apply {
-                        horizontalAlignment = SwingConstants.CENTER
-                    })
-                    add(SOUTH, JLabel("${item.viewportW} x ${item.viewportH}").apply {
-                        horizontalAlignment = SwingConstants.CENTER
-                    })
-                })
-            })
-            button.addMouseListener(object : MouseListener {
-                override fun mouseClicked(e: MouseEvent?) {
-                    presenter.onVectorClicked(
-                        project,
-                        item
-                    )
-                }
-
-                override fun mousePressed(e: MouseEvent?) {
-                }
-
-                override fun mouseReleased(e: MouseEvent?) {
-                }
-
-                override fun mouseEntered(e: MouseEvent?) {
-                }
-
-                override fun mouseExited(e: MouseEvent?) {
-                }
-            })
-            view.panelVectors.add(button)
-        }
-        view.panelVectors.revalidate()
-        // repaint needed to clear when no items
-        view.panelVectors.repaint()
     }
 
     private fun showContent(toolWindow: ToolWindow, panel: JPanel) {
         val contentFactory = kotlin.runCatching { ContentFactory.getInstance() }
-            .getOrNull()
-        val content = contentFactory?.createContent(panel, "", false)
-        content?.apply {
-            toolWindow.contentManager.addContent(content)
-        }
+            .getOrNull() ?: ContentFactory.SERVICE.getInstance() // Fallback for older versions
+        val content = contentFactory.createContent(panel, "", false)
+        toolWindow.contentManager.addContent(content)
     }
 
 }
