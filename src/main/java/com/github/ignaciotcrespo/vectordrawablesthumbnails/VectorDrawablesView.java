@@ -284,22 +284,45 @@ public class VectorDrawablesView {
         });
         panel.add(comboUsageFilter, gbc);
         
-        // File size filter
-        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        // File size filter with improved layout
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
         panel.add(new JLabel("Max File Size:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0;
+        
+        // Create a panel for slider and its label
+        gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        JPanel sliderPanel = new JPanel(new BorderLayout());
+        
         sliderFileSizeMax = new JSlider(0, 50, 50); // 0-50KB
         sliderFileSizeMax.setMajorTickSpacing(10);
         sliderFileSizeMax.setMinorTickSpacing(5);
         sliderFileSizeMax.setPaintTicks(true);
         sliderFileSizeMax.setPaintLabels(true);
         sliderFileSizeMax.setToolTipText("Maximum file size in KB");
-        panel.add(sliderFileSizeMax, gbc);
+        
+        // Add value label for immediate feedback
+        JLabel sliderValueLabel = new JLabel("No limit");
+        sliderValueLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        sliderValueLabel.setFont(sliderValueLabel.getFont().deriveFont(Font.BOLD));
+        
+        // Update label when slider changes
+        sliderFileSizeMax.addChangeListener(e -> {
+            JSlider slider = (JSlider) e.getSource();
+            int value = slider.getValue();
+            if (value >= 50) {
+                sliderValueLabel.setText("No limit");
+            } else {
+                sliderValueLabel.setText(value + " KB");
+            }
+        });
+        
+        sliderPanel.add(sliderFileSizeMax, BorderLayout.CENTER);
+        sliderPanel.add(sliderValueLabel, BorderLayout.SOUTH);
+        panel.add(sliderPanel, gbc);
         
         // Tags filter
-        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
+        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
         panel.add(new JLabel("Tags:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0;
+        gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
         textTagsFilter = new JTextField();
         textTagsFilter.setToolTipText("Filter by tags (comma-separated)");
         panel.add(textTagsFilter, gbc);

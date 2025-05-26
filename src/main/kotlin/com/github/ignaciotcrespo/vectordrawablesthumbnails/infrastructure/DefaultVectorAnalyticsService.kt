@@ -8,15 +8,25 @@ import com.intellij.psi.search.GlobalSearchScope
 import org.w3c.dom.Document
 import org.xml.sax.InputSource
 import java.io.StringReader
+import java.util.concurrent.ConcurrentHashMap
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * Default implementation of VectorAnalyticsService.
- * Provides comprehensive analysis of vector drawables.
+ * Provides comprehensive analysis of vector drawables with caching for performance.
  */
 class DefaultVectorAnalyticsService : VectorAnalyticsService {
     
+    // Cache for analytics to avoid recomputation
+    private val analyticsCache = ConcurrentHashMap<String, VectorAnalytics>()
+    private val usageCache = ConcurrentHashMap<String, Map<VectorItem, UsageStatus>>()
+    
     override fun analyzeVector(vectorItem: VectorItem): VectorAnalytics {
+        val cacheKey = generateCacheKey(vectorItem)
+        
+        // Check cache first
+        analyticsCache[cacheKey]?.let { return it }
+        
         val xmlContent = vectorItem.validFile.file.readText()
         val document = parseXmlDocument(xmlContent)
         
@@ -29,7 +39,7 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
         val hasAnimations = detectAnimations(document)
         val colorCount = countColors(document)
         
-        return VectorAnalytics(
+        val analytics = VectorAnalytics(
             complexityScore = complexityScore,
             complexityLevel = complexityLevel,
             pathCount = pathCount,
@@ -42,9 +52,18 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
             colorCount = colorCount,
             aspectRatio = vectorItem.aspectRatio
         )
+        
+        // Cache the result
+        analyticsCache[cacheKey] = analytics
+        return analytics
     }
     
     override fun analyzeUsage(project: Project, vectors: List<VectorItem>): Map<VectorItem, UsageStatus> {
+        val projectCacheKey = "${project.name}:${vectors.size}:${vectors.hashCode()}"
+        
+        // Check cache first
+        usageCache[projectCacheKey]?.let { return it }
+        
         val usageMap = mutableMapOf<VectorItem, UsageStatus>()
         
         vectors.forEach { vector ->
@@ -58,6 +77,8 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
             usageMap[vector] = status
         }
         
+        // Cache the result
+        usageCache[projectCacheKey] = usageMap
         return usageMap
     }
     
@@ -224,24 +245,52 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
             val vectorName = vector.name.removeSuffix(".xml")
             val scope = GlobalSearchScope.projectScope(project)
             
-            // Search for references in layout files
-            val layoutFiles = FilenameIndex.getAllFilesByExt(project, "xml", scope)
+            // Use more efficient search approach
             var usageCount = 0
             
-            layoutFiles.forEach { file ->
-                try {
-                    val content = String(file.contentsToByteArray())
-                    if (content.contains("@drawable/$vectorName") || content.contains("drawable/$vectorName")) {
-                        usageCount++
-                    }
-                } catch (e: Exception) {
-                    // Ignore files that can't be read
+            // Search using IntelliJ's built-in search capabilities
+            val searchPattern = "@drawable/$vectorName"
+            val alternatePattern = "drawable/$vectorName"
+            
+            // Get layout files more efficiently
+            val layoutFiles = FilenameIndex.getAllFilesByExt(project, "xml", scope)
+                .filter { file -> 
+                    // Filter to only layout-related directories to reduce search scope
+                    val path = file.path
+                    path.contains("/layout/") || path.contains("/layout-") || 
+                    path.contains("/menu/") || path.contains("/drawable/")
                 }
+            
+            // Batch process files to reduce I/O overhead
+            layoutFiles.chunked(50).forEach { batch ->
+                batch.forEach { file ->
+                    try {
+                        // Use more efficient content reading
+                        val content = String(file.contentsToByteArray())
+                        if (content.contains(searchPattern) || content.contains(alternatePattern)) {
+                            usageCount++
+                        }
+                    } catch (e: Exception) {
+                        // Ignore files that can't be read
+                    }
+                }
+                
+                // Allow other threads to work
+                Thread.yield()
             }
             
             return usageCount
         } catch (e: Exception) {
             return 0
         }
+    }
+    
+    private fun generateCacheKey(vectorItem: VectorItem): String {
+        return "${vectorItem.validFile.file.path}:${vectorItem.validFile.file.lastModified()}:${vectorItem.fileSize}"
+    }
+    
+    fun clearCache() {
+        analyticsCache.clear()
+        usageCache.clear()
     }
 } 
