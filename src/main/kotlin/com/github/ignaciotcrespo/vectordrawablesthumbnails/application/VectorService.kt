@@ -1,6 +1,7 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.application
 
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.*
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorAnalytics
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import com.intellij.openapi.project.Project
 import io.reactivex.Observable
@@ -21,6 +22,7 @@ class VectorService(
     private var currentSortCriteria = SortCriteria.BY_NAME
     private var currentSortDirection = SortDirection.ASC
     private var currentFilterText: String? = null
+    private var currentAdvancedFilter: FilterCriteria = FilterCriteria()
     
     val stateObservable: Observable<VectorServiceState> = stateSubject
     
@@ -35,18 +37,34 @@ class VectorService(
     
     fun getFilteredAndSortedVectors(): List<VectorItem> {
         val allVectors = repository.getVectors()
-        val filteredVectors = filter.filter(allVectors, currentFilterText)
+        
+        // Apply both text filter and advanced filter
+        val textFiltered = if (currentFilterText.isNullOrBlank()) {
+            allVectors
+        } else {
+            filter.filter(allVectors, currentFilterText)
+        }
+        
+        val advancedFiltered = filter.filter(textFiltered, currentAdvancedFilter)
         val sorter = sorterFactory.createSorter(currentSortCriteria, currentSortDirection)
-        return sorter.sort(filteredVectors)
+        return sorter.sort(advancedFiltered)
     }
     
     fun updateFilter(filterText: String?) {
         currentFilterText = filterText
     }
     
+    fun updateAdvancedFilter(criteria: FilterCriteria) {
+        currentAdvancedFilter = criteria
+    }
+    
     fun updateSort(criteria: SortCriteria, direction: SortDirection) {
         currentSortCriteria = criteria
         currentSortDirection = direction
+    }
+    
+    fun updateVectorAnalytics(vector: VectorItem, analytics: VectorAnalytics) {
+        repository.updateVectorAnalytics(vector, analytics)
     }
     
     fun getCurrentSortCriteria(): SortCriteria = currentSortCriteria

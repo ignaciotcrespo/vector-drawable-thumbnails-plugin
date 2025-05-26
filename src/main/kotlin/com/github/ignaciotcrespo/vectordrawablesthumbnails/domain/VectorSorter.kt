@@ -19,7 +19,10 @@ enum class SortCriteria {
     BY_WIDTH,
     BY_HEIGHT,
     BY_AREA,
-    BY_FILE_SIZE
+    BY_FILE_SIZE,
+    BY_COMPLEXITY,
+    BY_USAGE_COUNT,
+    BY_TAGS
 }
 
 /**

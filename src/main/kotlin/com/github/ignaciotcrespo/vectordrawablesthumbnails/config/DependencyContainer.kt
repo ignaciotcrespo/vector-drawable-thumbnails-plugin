@@ -17,6 +17,7 @@ class DependencyContainer {
     private val vectorParser: VectorParser by lazy { DefaultVectorParser() }
     private val vectorFilter: VectorFilter by lazy { DefaultVectorFilter() }
     private val vectorSorterFactory: VectorSorterFactory by lazy { DefaultVectorSorterFactory() }
+    private val vectorAnalyticsService: VectorAnalyticsService by lazy { DefaultVectorAnalyticsService() }
     
     // Domain layer
     private val vectorRepository: VectorRepository by lazy { 
@@ -27,4 +28,6 @@ class DependencyContainer {
     val vectorService: VectorService by lazy { 
         VectorService(vectorRepository, vectorFilter, vectorSorterFactory) 
     }
+    
+    val analyticsService: VectorAnalyticsService get() = vectorAnalyticsService
 } 

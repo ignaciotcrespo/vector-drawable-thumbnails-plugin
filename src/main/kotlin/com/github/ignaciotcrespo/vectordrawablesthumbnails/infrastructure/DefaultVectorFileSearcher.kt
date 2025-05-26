@@ -20,9 +20,9 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
     override fun searchVectorFiles(project: Project): Observable<ValidFile> {
         return Observable.create { emitter: ObservableEmitter<ValidFile> ->
             try {
-                println("Starting vector file search for project: ${project.name}")
+//                println("Starting vector file search for project: ${project.name}")
                 val modules = ModuleManager.getInstance(project).modules
-                println("Found ${modules.size} modules")
+//                println("Found ${modules.size} modules")
                 if (modules.isNotEmpty()) {
                     val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
                     for (module in modules) {
@@ -30,14 +30,14 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                         allExcludedRoots.addAll(listOf(*excludedRoots))
                     }
                     val projectRootFolder = modules[0].project.basePath
-                    println("Project root folder: $projectRootFolder")
+//                    println("Project root folder: $projectRootFolder")
                     if (projectRootFolder != null) {
                         val file1 = File(projectRootFolder)
                         searchFiles(emitter, file1, projectRootFolder, allExcludedRoots)
                     }
                 }
             } finally {
-                println("Vector file search completed")
+//                println("Vector file search completed")
                 emitter.onComplete()
             }
         }
@@ -68,7 +68,7 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                         searchFiles(emitter, f, projectRootFolder, excludedRoots)
                     }
                 } else if (f.toString().endsWith(".xml")) {
-                    println("Found XML file: ${f.absolutePath}")
+//                    println("Found XML file: ${f.absolutePath}")
                     emitter.onNext(ValidFile(f, projectRootFolder))
                 }
             }

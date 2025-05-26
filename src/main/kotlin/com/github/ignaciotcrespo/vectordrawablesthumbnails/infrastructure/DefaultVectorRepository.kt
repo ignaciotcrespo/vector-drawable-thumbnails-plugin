@@ -3,6 +3,7 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorFileSearcher
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorParser
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorRepository
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorAnalytics
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import com.intellij.openapi.project.Project
 import io.reactivex.Observable
@@ -38,5 +39,12 @@ class DefaultVectorRepository(
     
     override fun addVector(vectorItem: VectorItem) {
         vectors.add(vectorItem)
+    }
+    
+    override fun updateVectorAnalytics(vector: VectorItem, analytics: VectorAnalytics) {
+        val index = vectors.indexOfFirst { it.name == vector.name && it.validFile.file.path == vector.validFile.file.path }
+        if (index >= 0) {
+            vectors[index] = vectors[index].copy(analytics = analytics)
+        }
     }
 } 

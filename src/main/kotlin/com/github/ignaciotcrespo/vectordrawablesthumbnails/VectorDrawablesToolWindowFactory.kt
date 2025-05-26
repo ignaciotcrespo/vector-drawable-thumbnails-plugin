@@ -21,6 +21,7 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
         val controller = VectorUIController(
             view = view,
             vectorService = dependencyContainer.vectorService,
+            analyticsService = dependencyContainer.analyticsService,
             project = project
         )
         
