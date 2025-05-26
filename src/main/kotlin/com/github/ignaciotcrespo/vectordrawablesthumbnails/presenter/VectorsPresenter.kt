@@ -17,7 +17,7 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
 
-internal class VectorsPresenter(
+class VectorsPresenter(
     private val projectFileScanner: IProjectFileScanner,
     private val vectorDrawableParser: IVectorDrawableParser
 ) : IVectorsPresenter {
@@ -25,7 +25,7 @@ internal class VectorsPresenter(
     private var sort: String? = null
     private var filterText: String? = null
     private val uiEvents = PublishSubject.create<UiEvent>()
-    override val presenterEvents = PublishSubject.create<PresenterEvent>()
+    val presenterEvents = PublishSubject.create<PresenterEvent>()
     private var state = VectorStatePresenterEvent.State.IDLE
     private val items = ArrayList<VectorItem>()
 

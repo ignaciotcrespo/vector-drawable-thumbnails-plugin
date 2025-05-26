@@ -55,7 +55,7 @@ class SwingVectorDrawablesView : VectorDrawablesView {
         panelVectors.removeAll()
         if (items.isNotEmpty()) {
             val panelWidth = panelVectors.width - 20 // Account for padding
-            val columns = maxOf(1, panelWidth / (items[0].width + 20)) // +20 for padding between items
+            val columns = maxOf(1, panelWidth / (items[0].viewportW + 20)) // +20 for padding between items
             val rows = (items.size + columns - 1) / columns
 
             panelVectors.layout = GridLayout(rows, columns, 10, 10) // 10px hgap and vgap
