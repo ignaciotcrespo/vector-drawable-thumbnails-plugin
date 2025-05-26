@@ -23,6 +23,31 @@
 
 <!-- Plugin description end -->
 
+## Architecture
+
+This plugin has been refactored to follow **SOLID principles**, making it more scalable, maintainable, and testable. The architecture is organized into clear layers:
+
+### 🏗️ Layered Architecture
+- **Presentation Layer**: UI components and controllers
+- **Application Layer**: Business logic orchestration
+- **Domain Layer**: Core business interfaces and models
+- **Infrastructure Layer**: Concrete implementations
+
+### ✅ SOLID Principles Compliance
+- **Single Responsibility**: Each class has one clear purpose
+- **Open/Closed**: Easy to extend without modifying existing code
+- **Liskov Substitution**: Implementations are interchangeable
+- **Interface Segregation**: Small, focused interfaces
+- **Dependency Inversion**: Depends on abstractions, not concretions
+
+### 🧪 Benefits
+- **Testable**: Each component can be unit tested in isolation
+- **Maintainable**: Clear separation of concerns
+- **Scalable**: Easy to add new features and implementations
+- **Flexible**: Components can be swapped and configured
+
+For detailed information about the refactoring, see [SOLID_REFACTORING.md](SOLID_REFACTORING.md).
+
 ## Installation
 
 - Using IDE built-in plugin system:
@@ -35,6 +60,22 @@
   Download the [latest release](https://github.com/ignaciotcrespo/vector-drawable-thumbnails-plugin/releases/latest) and install it manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
+## Development
+
+### Running Tests
+```bash
+./gradlew test
+```
+
+### Building the Plugin
+```bash
+./gradlew buildPlugin
+```
+
+### Running in Development
+```bash
+./gradlew runIde
+```
 
 ---
 Plugin based on the [IntelliJ Platform Plugin Template][template].
