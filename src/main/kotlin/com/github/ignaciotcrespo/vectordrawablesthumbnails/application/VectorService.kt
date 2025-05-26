@@ -50,6 +50,10 @@ class VectorService(
         return sorter.sort(advancedFiltered)
     }
     
+    fun getAllVectors(): List<VectorItem> {
+        return repository.getVectors()
+    }
+    
     fun updateFilter(filterText: String?) {
         currentFilterText = filterText
     }

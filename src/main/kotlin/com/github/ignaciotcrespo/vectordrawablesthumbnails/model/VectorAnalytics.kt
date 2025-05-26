@@ -19,7 +19,13 @@ data class VectorAnalytics(
     val hasAnimations: Boolean = false,
     val colorCount: Int = 1,
     val aspectRatio: Double
-)
+) {
+    /**
+     * Computed property that returns true if there are optimization suggestions available.
+     */
+    val hasOptimizationSuggestions: Boolean
+        get() = optimizationSuggestions.isNotEmpty()
+}
 
 /**
  * Represents an optimization suggestion for a vector.

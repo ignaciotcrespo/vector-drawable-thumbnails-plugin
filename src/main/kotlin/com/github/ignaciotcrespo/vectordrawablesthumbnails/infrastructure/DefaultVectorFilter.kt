@@ -11,15 +11,30 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 class DefaultVectorFilter : VectorFilter {
     
     override fun filter(items: List<VectorItem>, criteria: FilterCriteria): List<VectorItem> {
-        return items.filter { item ->
-            matchesTextFilter(item, criteria.text) &&
-            matchesSizeFilter(item, criteria.sizeRange) &&
-            matchesComplexityFilter(item, criteria.complexityRange) &&
-            matchesFileSizeFilter(item, criteria.fileSizeRange) &&
-            matchesTagsFilter(item, criteria.tags) &&
-            matchesUsageFilter(item, criteria.usageStatus) &&
-            matchesAnimationFilter(item, criteria.hasAnimations)
+        println("DefaultVectorFilter: Filtering ${items.size} vectors with criteria: $criteria")
+        
+        val filtered = items.filter { item ->
+            val textMatch = matchesTextFilter(item, criteria.text)
+            val sizeMatch = matchesSizeFilter(item, criteria.sizeRange)
+            val complexityMatch = matchesComplexityFilter(item, criteria.complexityLevel)
+            val fileSizeMatch = matchesFileSizeFilter(item, criteria.fileSizeRange)
+            val tagsMatch = matchesTagsFilter(item, criteria.tags)
+            val usageMatch = matchesUsageFilter(item, criteria.usageStatus)
+            val animationMatch = matchesAnimationFilter(item, criteria.hasAnimations)
+            val optimizationMatch = matchesOptimizationSuggestionsFilter(item, criteria.hasOptimizationSuggestions)
+            
+            val matches = textMatch && sizeMatch && complexityMatch && fileSizeMatch && 
+                         tagsMatch && usageMatch && animationMatch && optimizationMatch
+            
+            if (!matches && (criteria.complexityLevel != null || criteria.usageStatus != null)) {
+                println("DefaultVectorFilter: ${item.name} filtered out - complexity: ${item.analytics?.complexityLevel} (want: ${criteria.complexityLevel}), usage: ${item.analytics?.usageStatus} (want: ${criteria.usageStatus})")
+            }
+            
+            matches
         }
+        
+        println("DefaultVectorFilter: Filtered result: ${filtered.size} vectors")
+        return filtered
     }
     
     private fun matchesTextFilter(item: VectorItem, text: String?): Boolean {
@@ -39,11 +54,10 @@ class DefaultVectorFilter : VectorFilter {
         return maxDimension in sizeRange
     }
     
-    private fun matchesComplexityFilter(item: VectorItem, complexityRange: IntRange?): Boolean {
-        if (complexityRange == null) return true
+    private fun matchesComplexityFilter(item: VectorItem, complexityLevel: com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ComplexityLevel?): Boolean {
+        if (complexityLevel == null) return true
         
-        val complexityScore = item.analytics?.complexityScore ?: 0
-        return complexityScore in complexityRange
+        return item.analytics?.complexityLevel == complexityLevel
     }
     
     private fun matchesFileSizeFilter(item: VectorItem, fileSizeRange: LongRange?): Boolean {
@@ -73,5 +87,11 @@ class DefaultVectorFilter : VectorFilter {
         if (hasAnimations == null) return true
         
         return item.analytics?.hasAnimations == hasAnimations
+    }
+    
+    private fun matchesOptimizationSuggestionsFilter(item: VectorItem, hasOptimizationSuggestions: Boolean?): Boolean {
+        if (hasOptimizationSuggestions == null) return true
+        
+        return item.analytics?.hasOptimizationSuggestions == hasOptimizationSuggestions
     }
 } 

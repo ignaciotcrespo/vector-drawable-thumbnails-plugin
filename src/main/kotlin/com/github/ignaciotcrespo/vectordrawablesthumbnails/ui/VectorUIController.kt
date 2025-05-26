@@ -160,6 +160,7 @@ class VectorUIController(
     
     private fun updateAdvancedFilter() {
         val criteria = buildFilterCriteria()
+        println("VectorUIController: Applying advanced filter - complexityLevel: ${criteria.complexityLevel}, usageStatus: ${criteria.usageStatus}, hasOptimizationSuggestions: ${criteria.hasOptimizationSuggestions}")
         vectorService.updateAdvancedFilter(criteria)
         updateVectorDisplay()
     }
@@ -168,7 +169,9 @@ class VectorUIController(
         val textFilter = view.textFilter.text?.takeIf { it.isNotBlank() }
         
         // Complexity filter
-        val complexityLevel = when (view.comboComplexityFilter?.selectedItem?.toString()) {
+        val complexitySelection = view.comboComplexityFilter?.selectedItem?.toString()
+        println("VectorUIController: Complexity selection: '$complexitySelection'")
+        val complexityLevel = when (complexitySelection) {
             "Simple" -> com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ComplexityLevel.SIMPLE
             "Moderate" -> com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ComplexityLevel.MODERATE
             "Complex" -> com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ComplexityLevel.COMPLEX
@@ -177,7 +180,9 @@ class VectorUIController(
         }
         
         // Usage filter
-        val usageStatus = when (view.comboUsageFilter?.selectedItem?.toString()) {
+        val usageSelection = view.comboUsageFilter?.selectedItem?.toString()
+        println("VectorUIController: Usage selection: '$usageSelection'")
+        val usageStatus = when (usageSelection) {
             "Unused" -> com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.UNUSED
             "Rarely Used" -> com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.RARELY_USED
             "Used" -> com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.USED
@@ -200,20 +205,21 @@ class VectorUIController(
         // Animation filter
         val hasAnimations = if (view.checkShowAnimated?.isSelected == true) true else null
         
-        // Complexity range for optimizable filter
-        val complexityRange = if (view.checkShowOptimizable?.isSelected == true) {
-            // Show vectors with complexity > 20 (likely to have optimization suggestions)
-            20..100
-        } else null
+        // Optimization suggestions filter - check if vectors have actual optimization suggestions
+        val hasOptimizationSuggestions = if (view.checkShowOptimizable?.isSelected == true) true else null
         
-        return com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.FilterCriteria(
+        val criteria = com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.FilterCriteria(
             text = textFilter,
             fileSizeRange = fileSizeRange,
-            complexityRange = complexityRange,
+            complexityLevel = complexityLevel,
             tags = tags,
             usageStatus = usageStatus,
-            hasAnimations = hasAnimations
+            hasAnimations = hasAnimations,
+            hasOptimizationSuggestions = hasOptimizationSuggestions
         )
+        
+        println("VectorUIController: Built filter criteria - $criteria")
+        return criteria
     }
     
     private fun resetAllFilters() {
@@ -307,7 +313,7 @@ class VectorUIController(
     }
     
     private fun displayVectors(items: List<VectorItem>) {
-//        println("VectorUIController: Displaying ${items.size} vectors")
+        println("VectorUIController: Displaying ${items.size} vectors")
         view.panelVectors.removeAll()
         
         // Set up grid layout for better organization
@@ -315,22 +321,21 @@ class VectorUIController(
         view.panelVectors.layout = GridLayout(0, columns, 8, 8)
         
         items.forEach { item ->
-            // Generate analytics if not present
-            val itemWithAnalytics = if (item.analytics == null) {
-//                println("VectorUIController: Generating analytics for ${item.name}")
+            // Analytics should already be generated and persisted
+            if (item.analytics == null) {
+                println("VectorUIController: WARNING - No analytics for ${item.name}, generating on-demand")
                 val analytics = analyticsService.analyzeVector(item)
-                item.copy(analytics = analytics)
-            } else {
-                item
+                vectorService.updateVectorAnalytics(item, analytics)
+                println("VectorUIController: Generated analytics for ${item.name} - complexity: ${analytics.complexityScore}")
             }
             
-            val vectorPanel = VectorItemPanel(itemWithAnalytics, project)
+            val vectorPanel = VectorItemPanel(item, project)
             view.panelVectors.add(vectorPanel)
         }
         
         view.panelVectors.revalidate()
         view.panelVectors.repaint()
-//        println("VectorUIController: Display update complete")
+        println("VectorUIController: Display update complete")
     }
     
     private fun calculateOptimalColumns(itemCount: Int): Int {
@@ -375,33 +380,39 @@ class VectorUIController(
     }
     
     private fun loadVectors() {
-//        println("VectorUIController: Starting to load vectors...")
+        println("VectorUIController: Starting to load vectors...")
         val disposable = vectorService.loadVectors(project)
             .subscribeOn(Schedulers.io())
             .observeOn(Schedulers.computation())
             .subscribe(
                 { vectorItem ->
-                    // Vector item loaded successfully
-//                    println("VectorUIController: Loaded vector: ${vectorItem.name}")
+                    // Vector item loaded successfully - generate analytics immediately
+                    println("VectorUIController: Loaded vector: ${vectorItem.name}")
+                    if (vectorItem.analytics == null) {
+                        val analytics = analyticsService.analyzeVector(vectorItem)
+                        vectorService.updateVectorAnalytics(vectorItem, analytics)
+                        println("VectorUIController: Generated analytics for ${vectorItem.name} - complexity: ${analytics.complexityScore}")
+                    }
                 },
                 { error ->
-//                    println("VectorUIController: Error loading vector: ${error.message}")
+                    println("VectorUIController: Error loading vector: ${error.message}")
                     error.printStackTrace()
                 },
                 {
-                    // Loading completed - generate analytics for all vectors
-//                    println("VectorUIController: Vector loading completed, generating analytics...")
+                    // Loading completed - generate usage analysis for all vectors
+                    println("VectorUIController: Vector loading completed, generating usage analytics...")
                     SwingUtilities.invokeLater {
-                        generateAnalyticsForAllVectors()
+                        generateUsageAnalyticsForAllVectors()
+                        updateVectorDisplay()
                     }
                 }
             )
         disposables.add(disposable)
     }
     
-    private fun generateAnalyticsForAllVectors() {
-        val vectors = vectorService.getFilteredAndSortedVectors()
-//        println("VectorUIController: Generating analytics for ${vectors.size} vectors")
+    private fun generateUsageAnalyticsForAllVectors() {
+        val vectors = vectorService.getAllVectors() // Get all vectors, not filtered ones
+        println("VectorUIController: Generating usage analytics for ${vectors.size} vectors")
         
         // Generate usage analysis for all vectors
         val usageMap = analyticsService.analyzeUsage(project, vectors)
@@ -420,9 +431,10 @@ class VectorUIController(
                 )
                 // Update the vector in the repository
                 vectorService.updateVectorAnalytics(vector, updatedAnalytics)
+                println("VectorUIController: Updated usage for ${vector.name} - status: ${updatedAnalytics.usageStatus}")
             }
         }
         
-//        println("VectorUIController: Analytics generation completed")
+        println("VectorUIController: Usage analytics generation completed")
     }
 } 

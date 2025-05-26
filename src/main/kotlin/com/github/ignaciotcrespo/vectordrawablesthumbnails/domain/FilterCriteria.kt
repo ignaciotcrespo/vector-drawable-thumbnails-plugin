@@ -7,11 +7,12 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.domain
 data class FilterCriteria(
     val text: String? = null,
     val sizeRange: IntRange? = null,
-    val complexityRange: IntRange? = null,
+    val complexityLevel: ComplexityLevel? = null,
     val fileSizeRange: LongRange? = null,
     val tags: List<String> = emptyList(),
     val usageStatus: UsageStatus? = null,
-    val hasAnimations: Boolean? = null
+    val hasAnimations: Boolean? = null,
+    val hasOptimizationSuggestions: Boolean? = null
 )
 
 /**
