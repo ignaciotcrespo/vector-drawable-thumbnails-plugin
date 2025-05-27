@@ -2,6 +2,7 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.*
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.*
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
@@ -155,117 +156,89 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
     override fun calculateComplexityScore(vectorItem: VectorItem): Int {
         val xmlContent = vectorItem.validFile.file.readText()
         val document = parseXmlDocument(xmlContent)
-        
-        var score = 0
-        
-        // Base score from path count
-        val pathCount = countPaths(document)
-        score += pathCount * 2
-        
-        // Additional complexity factors
-        if (xmlContent.contains("gradient")) score += 10
-        if (xmlContent.contains("clip-path")) score += 5
-        if (xmlContent.contains("transform")) score += 3
-        if (xmlContent.contains("animate")) score += 15
-        
-        // File size factor
-        score += (vectorItem.fileSize / 1024).toInt() // 1 point per KB
-        
-        return minOf(score, 100) // Cap at 100
+        return calculateComplexityScoreOptimized(vectorItem, xmlContent, document)
     }
     
     override fun estimateRenderTime(vectorItem: VectorItem): Long {
         val complexityScore = calculateComplexityScore(vectorItem)
-        val baseTime = 100L // microseconds
-        
-        // Estimate based on complexity and size
-        return baseTime + (complexityScore * 10) + (vectorItem.viewportW * vectorItem.viewportH / 1000)
+        return estimateRenderTimeOptimized(complexityScore, vectorItem)
     }
     
     override fun extractTags(vectorItem: VectorItem): List<String> {
-        val tags = mutableListOf<String>()
-        val fileName = vectorItem.name.lowercase()
-        
-        // Extract semantic meaning from filename
-        when {
-            fileName.contains("ic_") -> tags.add("icon")
-            fileName.contains("btn_") -> tags.add("button")
-            fileName.contains("bg_") -> tags.add("background")
-        }
-        
-        // Common icon categories
-        when {
-            fileName.contains("home") -> tags.add("navigation")
-            fileName.contains("menu") -> tags.add("navigation")
-            fileName.contains("back") || fileName.contains("arrow") -> tags.add("navigation")
-            fileName.contains("search") -> tags.add("action")
-            fileName.contains("add") || fileName.contains("plus") -> tags.add("action")
-            fileName.contains("delete") || fileName.contains("remove") -> tags.add("action")
-            fileName.contains("edit") -> tags.add("action")
-            fileName.contains("share") -> tags.add("social")
-            fileName.contains("heart") || fileName.contains("like") -> tags.add("social")
-            fileName.contains("star") || fileName.contains("favorite") -> tags.add("social")
-        }
-        
-        // Size categories
-        when {
-            vectorItem.isSquare -> tags.add("square")
-            vectorItem.aspectRatio > 1.5 -> tags.add("wide")
-            vectorItem.aspectRatio < 0.67 -> tags.add("tall")
-        }
-        
-        // Complexity tags
-        if (vectorItem.fileSize > 5 * 1024) tags.add("complex")
-        if (vectorItem.fileSize < 1024) tags.add("simple")
-        
-        return tags.distinct()
+        return extractTagsOptimized(vectorItem)
     }
     
     private fun parseXmlDocument(xmlContent: String): Document? {
         return try {
-            val dbf = DocumentBuilderFactory.newInstance()
-            val db = dbf.newDocumentBuilder()
-            db.parse(InputSource(StringReader(xmlContent)))
+            val factory = DocumentBuilderFactory.newInstance()
+            val builder = factory.newDocumentBuilder()
+            val inputSource = InputSource(StringReader(xmlContent))
+            builder.parse(inputSource)
         } catch (e: Exception) {
             null
         }
     }
     
     private fun countPaths(document: Document?): Int {
-        return document?.getElementsByTagName("path")?.length ?: 0
+        return try {
+            document?.getElementsByTagName("path")?.length ?: 0
+        } catch (e: Exception) {
+            0
+        }
     }
     
     private fun determineComplexityLevel(pathCount: Int): ComplexityLevel {
         return when {
-            pathCount <= 5 -> ComplexityLevel.SIMPLE
-            pathCount <= 15 -> ComplexityLevel.MODERATE
-            pathCount <= 30 -> ComplexityLevel.COMPLEX
+            pathCount <= 2 -> ComplexityLevel.SIMPLE
+            pathCount <= 5 -> ComplexityLevel.MODERATE
+            pathCount <= 10 -> ComplexityLevel.COMPLEX
             else -> ComplexityLevel.VERY_COMPLEX
         }
     }
     
     private fun detectAnimations(document: Document?): Boolean {
-        return document?.let { doc ->
-            doc.getElementsByTagName("animate").length > 0 ||
-            doc.getElementsByTagName("animateTransform").length > 0 ||
-            doc.getElementsByTagName("animateColor").length > 0
-        } ?: false
+        return try {
+            val animatedVectorTags = document?.getElementsByTagName("animated-vector")?.length ?: 0
+            val animationTags = document?.getElementsByTagName("animation")?.length ?: 0
+            val objectAnimatorTags = document?.getElementsByTagName("objectAnimator")?.length ?: 0
+            
+            animatedVectorTags > 0 || animationTags > 0 || objectAnimatorTags > 0
+        } catch (e: Exception) {
+            false
+        }
     }
     
     private fun countColors(document: Document?): Int {
-        val colors = mutableSetOf<String>()
-        document?.let { doc ->
-            val elements = doc.getElementsByTagName("*")
-            for (i in 0 until elements.length) {
-                val element = elements.item(i)
-                val fillColor = element.attributes?.getNamedItem("android:fillColor")?.nodeValue
-                val strokeColor = element.attributes?.getNamedItem("android:strokeColor")?.nodeValue
-                
-                fillColor?.let { colors.add(it) }
-                strokeColor?.let { colors.add(it) }
+        return try {
+            val colorSet = mutableSetOf<String>()
+            
+            // Count fill colors
+            val pathElements = document?.getElementsByTagName("path")
+            if (pathElements != null) {
+                for (i in 0 until pathElements.length) {
+                    val element = pathElements.item(i)
+                    val fillColor = element.attributes?.getNamedItem("android:fillColor")?.nodeValue
+                    if (fillColor != null && fillColor.startsWith("#")) {
+                        colorSet.add(fillColor)
+                    }
+                }
             }
+            
+            // Count stroke colors
+            if (pathElements != null) {
+                for (i in 0 until pathElements.length) {
+                    val element = pathElements.item(i)
+                    val strokeColor = element.attributes?.getNamedItem("android:strokeColor")?.nodeValue
+                    if (strokeColor != null && strokeColor.startsWith("#")) {
+                        colorSet.add(strokeColor)
+                    }
+                }
+            }
+            
+            maxOf(colorSet.size, 1) // At least 1 color
+        } catch (e: Exception) {
+            1
         }
-        return maxOf(colors.size, 1)
     }
     
     private fun findUsageInProject(project: Project, vector: VectorItem): Int {
@@ -273,21 +246,23 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
             val vectorName = vector.name.removeSuffix(".xml")
             val scope = GlobalSearchScope.projectScope(project)
             
-            // Use more efficient search approach
+            // Use more efficient search approach with proper read access
             var usageCount = 0
             
             // Search using IntelliJ's built-in search capabilities
             val searchPattern = "@drawable/$vectorName"
             val alternatePattern = "drawable/$vectorName"
             
-            // Get layout files more efficiently
-            val layoutFiles = FilenameIndex.getAllFilesByExt(project, "xml", scope)
-                .filter { file -> 
-                    // Filter to only layout-related directories to reduce search scope
-                    val path = file.path
-                    path.contains("/layout/") || path.contains("/layout-") || 
-                    path.contains("/menu/") || path.contains("/drawable/")
-                }
+            // Get layout files more efficiently with read access
+            val layoutFiles = ApplicationManager.getApplication().runReadAction<List<com.intellij.openapi.vfs.VirtualFile>> {
+                FilenameIndex.getAllFilesByExt(project, "xml", scope)
+                    .filter { file -> 
+                        // Filter to only layout-related directories to reduce search scope
+                        val path = file.path
+                        path.contains("/layout/") || path.contains("/layout-") || 
+                        path.contains("/menu/") || path.contains("/drawable/")
+                    }
+            }
             
             // Batch process files to reduce I/O overhead
             layoutFiles.chunked(50).forEach { batch ->
@@ -325,13 +300,15 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
             val searchPattern = "@drawable/$vectorName"
             val alternatePattern = "drawable/$vectorName"
             
-            // Get layout files with smaller batch size for responsiveness
-            val layoutFiles = FilenameIndex.getAllFilesByExt(project, "xml", scope)
-                .filter { file -> 
-                    val path = file.path
-                    path.contains("/layout/") || path.contains("/layout-") || 
-                    path.contains("/menu/") || path.contains("/drawable/")
-                }
+            // Get layout files with smaller batch size for responsiveness - FIXED WITH READ ACCESS
+            val layoutFiles = ApplicationManager.getApplication().runReadAction<List<com.intellij.openapi.vfs.VirtualFile>> {
+                FilenameIndex.getAllFilesByExt(project, "xml", scope)
+                    .filter { file -> 
+                        val path = file.path
+                        path.contains("/layout/") || path.contains("/layout-") || 
+                        path.contains("/menu/") || path.contains("/drawable/")
+                    }
+            }
             
             // Process in smaller batches with more frequent yielding
             layoutFiles.chunked(20).forEach { batch ->
