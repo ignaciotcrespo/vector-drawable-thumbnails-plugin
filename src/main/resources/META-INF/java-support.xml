@@ -1,0 +1,30 @@
+<idea-plugin>
+    <!-- Enhanced Java IDE support -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Java project integration -->
+        <projectConfigurable 
+            groupId="build.tools" 
+            displayName="Vector Drawable Settings"
+            id="vector.drawable.settings"
+            implementation="com.github.ignaciotcrespo.vectordrawablesthumbnails.java.VectorDrawableConfigurable"/>
+            
+        <!-- Java-specific inspections -->
+        <localInspection 
+            language="JAVA" 
+            displayName="Vector Drawable Resource Usage"
+            groupName="Vector Drawable"
+            enabledByDefault="true"
+            implementationClass="com.github.ignaciotcrespo.vectordrawablesthumbnails.java.VectorResourceInspection"/>
+    </extensions>
+    
+    <actions>
+        <!-- Java-specific actions -->
+        <action 
+            id="VectorDrawable.GenerateJavaConstants" 
+            class="com.github.ignaciotcrespo.vectordrawablesthumbnails.java.GenerateJavaConstantsAction"
+            text="Generate Vector Constants"
+            description="Generate Java constants for vector drawable resources">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin> 
