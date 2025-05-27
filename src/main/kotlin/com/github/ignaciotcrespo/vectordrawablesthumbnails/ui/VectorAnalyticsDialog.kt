@@ -3,27 +3,66 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.ui
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.Priority
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorAnalytics
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorAnalyticsService
+import com.intellij.openapi.project.Project
 import java.awt.*
 import javax.swing.*
 
 /**
  * Dialog showing detailed analytics for a vector drawable.
  * Provides comprehensive insights and optimization suggestions.
+ * Can load analytics on-demand if not already available.
  */
-class VectorAnalyticsDialog(
-    parent: Window?,
-    private val vectorItem: VectorItem,
-    private val analytics: VectorAnalytics
-) : JDialog(parent, "Vector Analytics - ${vectorItem.name}", ModalityType.APPLICATION_MODAL) {
+class VectorAnalyticsDialog : JDialog {
     
-    init {
-//        println("VectorAnalyticsDialog: Creating dialog for ${vectorItem.name}")
-//        println("VectorAnalyticsDialog: Analytics - complexity: ${analytics.complexityLevel}, usage: ${analytics.usageStatus}")
+    private val vectorItem: VectorItem
+    private val analyticsService: VectorAnalyticsService?
+    private val project: Project?
+    private var analytics: VectorAnalytics?
+    private lateinit var contentPanel: JPanel
+    private lateinit var loadingPanel: JPanel
+    private lateinit var progressBar: JProgressBar
+    private lateinit var loadingLabel: JLabel
+    
+    // New constructor with on-demand analytics loading
+    constructor(
+        parent: Window?,
+        vectorItem: VectorItem,
+        analyticsService: VectorAnalyticsService,
+        project: Project,
+        initialAnalytics: VectorAnalytics? = null
+    ) : super(parent, "Vector Analytics - ${vectorItem.name}", ModalityType.APPLICATION_MODAL) {
+        this.vectorItem = vectorItem
+        this.analyticsService = analyticsService
+        this.project = project
+        this.analytics = initialAnalytics
+        
         setupDialog()
-        createContent()
+        if (analytics != null) {
+            createContentWithAnalytics()
+        } else {
+            createLoadingContent()
+            loadAnalyticsAsync()
+        }
         pack()
         setLocationRelativeTo(parent)
-//        println("VectorAnalyticsDialog: Dialog created and positioned")
+    }
+    
+    // Backward-compatible constructor for existing code
+    constructor(
+        parent: Window?,
+        vectorItem: VectorItem,
+        analytics: VectorAnalytics
+    ) : super(parent, "Vector Analytics - ${vectorItem.name}", ModalityType.APPLICATION_MODAL) {
+        this.vectorItem = vectorItem
+        this.analyticsService = null
+        this.project = null
+        this.analytics = analytics
+        
+        setupDialog()
+        createContentWithAnalytics()
+        pack()
+        setLocationRelativeTo(parent)
     }
     
     private fun setupDialog() {
@@ -32,7 +71,46 @@ class VectorAnalyticsDialog(
         minimumSize = Dimension(500, 400)
     }
     
-    private fun createContent() {
+    private fun createLoadingContent() {
+        layout = BorderLayout()
+        
+        // Header with vector preview (always available)
+        add(createHeaderPanel(), BorderLayout.NORTH)
+        
+        // Loading panel
+        loadingPanel = JPanel()
+        loadingPanel.layout = BoxLayout(loadingPanel, BoxLayout.Y_AXIS)
+        loadingPanel.border = BorderFactory.createEmptyBorder(50, 50, 50, 50)
+        
+        loadingLabel = JLabel("Loading analytics...", SwingConstants.CENTER)
+        loadingLabel.font = loadingLabel.font.deriveFont(Font.BOLD, 16f)
+        loadingLabel.alignmentX = Component.CENTER_ALIGNMENT
+        
+        progressBar = JProgressBar()
+        progressBar.isIndeterminate = true
+        progressBar.alignmentX = Component.CENTER_ALIGNMENT
+        progressBar.preferredSize = Dimension(300, 20)
+        
+        val statusLabel = JLabel("Analyzing vector complexity, usage, and optimization opportunities...", SwingConstants.CENTER)
+        statusLabel.font = statusLabel.font.deriveFont(12f)
+        statusLabel.foreground = Color.GRAY
+        statusLabel.alignmentX = Component.CENTER_ALIGNMENT
+        
+        loadingPanel.add(Box.createVerticalGlue())
+        loadingPanel.add(loadingLabel)
+        loadingPanel.add(Box.createVerticalStrut(20))
+        loadingPanel.add(progressBar)
+        loadingPanel.add(Box.createVerticalStrut(10))
+        loadingPanel.add(statusLabel)
+        loadingPanel.add(Box.createVerticalGlue())
+        
+        add(loadingPanel, BorderLayout.CENTER)
+        
+        // Footer with close button
+        add(createFooterPanel(), BorderLayout.SOUTH)
+    }
+    
+    private fun createContentWithAnalytics() {
         layout = BorderLayout()
         
         // Header with vector preview
@@ -43,6 +121,91 @@ class VectorAnalyticsDialog(
         
         // Footer with actions
         add(createFooterPanel(), BorderLayout.SOUTH)
+    }
+    
+    private fun loadAnalyticsAsync() {
+        Thread {
+            try {
+                // Check if we have the required services
+                if (analyticsService == null || project == null) {
+                    SwingUtilities.invokeLater {
+                        showErrorContent("Analytics service not available")
+                    }
+                    return@Thread
+                }
+                
+                SwingUtilities.invokeLater {
+                    loadingLabel.text = "Analyzing vector structure..."
+                }
+                
+                // Generate analytics with progress updates
+                val generatedAnalytics = analyticsService.analyzeVector(vectorItem)
+                
+                SwingUtilities.invokeLater {
+                    loadingLabel.text = "Analyzing usage patterns..."
+                }
+                
+                // Analyze usage (this is the expensive part)
+                val usageAnalytics = analyticsService.analyzeUsage(project, listOf(vectorItem))
+                val usageStatus = usageAnalytics[vectorItem] ?: com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.UNUSED
+                val usageCount = when (usageStatus) {
+                    com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.UNUSED -> 0
+                    com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.RARELY_USED -> 1
+                    com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.USED -> 5
+                    com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.FREQUENTLY_USED -> 10
+                }
+                
+                // Update analytics with usage information
+                analytics = generatedAnalytics.copy(
+                    usageStatus = usageStatus,
+                    usageCount = usageCount
+                )
+                
+                SwingUtilities.invokeLater {
+                    loadingLabel.text = "Finalizing analytics..."
+                    
+                    // Replace loading content with actual analytics
+                    remove(loadingPanel)
+                    add(createTabbedPane(), BorderLayout.CENTER)
+                    revalidate()
+                    repaint()
+                    pack()
+                }
+                
+            } catch (e: Exception) {
+                SwingUtilities.invokeLater {
+                    showErrorContent("Failed to load analytics: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun showErrorContent(errorMessage: String) {
+        remove(loadingPanel)
+        
+        val errorPanel = JPanel()
+        errorPanel.layout = BoxLayout(errorPanel, BoxLayout.Y_AXIS)
+        errorPanel.border = BorderFactory.createEmptyBorder(50, 50, 50, 50)
+        
+        val errorLabel = JLabel("Error loading analytics", SwingConstants.CENTER)
+        errorLabel.font = errorLabel.font.deriveFont(Font.BOLD, 16f)
+        errorLabel.foreground = Color.RED
+        errorLabel.alignmentX = Component.CENTER_ALIGNMENT
+        
+        val messageLabel = JLabel(errorMessage, SwingConstants.CENTER)
+        messageLabel.font = messageLabel.font.deriveFont(12f)
+        messageLabel.foreground = Color.GRAY
+        messageLabel.alignmentX = Component.CENTER_ALIGNMENT
+        
+        errorPanel.add(Box.createVerticalGlue())
+        errorPanel.add(errorLabel)
+        errorPanel.add(Box.createVerticalStrut(10))
+        errorPanel.add(messageLabel)
+        errorPanel.add(Box.createVerticalGlue())
+        
+        add(errorPanel, BorderLayout.CENTER)
+        revalidate()
+        repaint()
     }
     
     private fun createHeaderPanel(): JPanel {
@@ -73,9 +236,12 @@ class VectorAnalyticsDialog(
         val fileSizeLabel = JLabel("File Size: ${vectorItem.fileSizeFormatted}")
         infoPanel.add(fileSizeLabel)
         
-        val complexityLabel = JLabel("Complexity: ${analytics.complexityLevel.name.lowercase()}")
-        complexityLabel.foreground = getComplexityColor(analytics.complexityLevel)
-        infoPanel.add(complexityLabel)
+        // Only show complexity if analytics are available
+        analytics?.let { analytics ->
+            val complexityLabel = JLabel("Complexity: ${analytics.complexityLevel.name.lowercase()}")
+            complexityLabel.foreground = getComplexityColor(analytics.complexityLevel)
+            infoPanel.add(complexityLabel)
+        }
         
         panel.add(infoPanel, BorderLayout.CENTER)
         
@@ -85,15 +251,17 @@ class VectorAnalyticsDialog(
     private fun createTabbedPane(): JTabbedPane {
         val tabbedPane = JTabbedPane()
         
-        tabbedPane.addTab("📊 Overview", createOverviewPanel())
-        tabbedPane.addTab("🔧 Optimizations", createOptimizationsPanel())
-        tabbedPane.addTab("🏷️ Tags & Usage", createTagsPanel())
-        tabbedPane.addTab("📈 Performance", createPerformancePanel())
+        analytics?.let { analytics ->
+            tabbedPane.addTab("📊 Overview", createOverviewPanel(analytics))
+            tabbedPane.addTab("🔧 Optimizations", createOptimizationsPanel(analytics))
+            tabbedPane.addTab("🏷️ Tags & Usage", createTagsPanel(analytics))
+            tabbedPane.addTab("📈 Performance", createPerformancePanel(analytics))
+        }
         
         return tabbedPane
     }
     
-    private fun createOverviewPanel(): JPanel {
+    private fun createOverviewPanel(analytics: VectorAnalytics): JPanel {
         val panel = JPanel()
         panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
         panel.border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
@@ -112,52 +280,56 @@ class VectorAnalyticsDialog(
         
         // Usage status
         panel.add(Box.createVerticalStrut(16))
-        val usagePanel = createUsageStatusPanel()
+        val usagePanel = createUsageStatusPanel(analytics)
         panel.add(usagePanel)
         
         return panel
     }
     
-    private fun createOptimizationsPanel(): JPanel {
-        val panel = JPanel(BorderLayout())
+    private fun createOptimizationsPanel(analytics: VectorAnalytics): JPanel {
+        val panel = JPanel()
+        panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
         panel.border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
         
         if (analytics.optimizationSuggestions.isEmpty()) {
-            val noSuggestionsLabel = JLabel("No optimization suggestions available.")
-            noSuggestionsLabel.horizontalAlignment = SwingConstants.CENTER
+            val noSuggestionsLabel = JLabel("No optimization suggestions available")
             noSuggestionsLabel.foreground = Color.GRAY
-            panel.add(noSuggestionsLabel, BorderLayout.CENTER)
+            noSuggestionsLabel.horizontalAlignment = SwingConstants.CENTER
+            panel.add(noSuggestionsLabel)
         } else {
-            val listModel = DefaultListModel<String>()
             analytics.optimizationSuggestions.forEach { suggestion ->
-                val priorityIcon = when (suggestion.priority) {
-                    Priority.CRITICAL -> "🔴"
-                    Priority.HIGH -> "🟠"
-                    Priority.MEDIUM -> "🟡"
-                    Priority.LOW -> "🟢"
-                }
-                listModel.addElement("$priorityIcon ${suggestion.description} (${suggestion.potentialSavings})")
+                val suggestionPanel = createOptimizationSuggestionPanel(suggestion)
+                panel.add(suggestionPanel)
+                panel.add(Box.createVerticalStrut(8))
             }
-            
-            val list = JList(listModel)
-            list.selectionMode = ListSelectionModel.SINGLE_SELECTION
-            list.cellRenderer = OptimizationListCellRenderer()
-            
-            val scrollPane = JScrollPane(list)
-            panel.add(scrollPane, BorderLayout.CENTER)
-            
-            // Summary
-            val summaryPanel = JPanel(FlowLayout(FlowLayout.LEFT))
-            val summaryLabel = JLabel("${analytics.optimizationSuggestions.size} optimization suggestions found")
-            summaryLabel.font = summaryLabel.font.deriveFont(Font.BOLD)
-            summaryPanel.add(summaryLabel)
-            panel.add(summaryPanel, BorderLayout.SOUTH)
         }
         
         return panel
     }
     
-    private fun createTagsPanel(): JPanel {
+    private fun createOptimizationSuggestionPanel(suggestion: com.github.ignaciotcrespo.vectordrawablesthumbnails.model.OptimizationSuggestion): JPanel {
+        val panel = JPanel(BorderLayout())
+        panel.border = BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(getPriorityColor(suggestion.priority)),
+            BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        )
+        
+        val titleLabel = JLabel(suggestion.type.name.lowercase().replace('_', ' '))
+        titleLabel.font = titleLabel.font.deriveFont(Font.BOLD)
+        panel.add(titleLabel, BorderLayout.NORTH)
+        
+        val descriptionLabel = JLabel("<html>${suggestion.description}</html>")
+        panel.add(descriptionLabel, BorderLayout.CENTER)
+        
+        val savingsLabel = JLabel(suggestion.potentialSavings)
+        savingsLabel.foreground = Color(0, 150, 0)
+        savingsLabel.font = savingsLabel.font.deriveFont(Font.BOLD, 10f)
+        panel.add(savingsLabel, BorderLayout.SOUTH)
+        
+        return panel
+    }
+    
+    private fun createTagsPanel(analytics: VectorAnalytics): JPanel {
         val panel = JPanel(BorderLayout())
         panel.border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
         
@@ -202,7 +374,7 @@ class VectorAnalyticsDialog(
         return panel
     }
     
-    private fun createPerformancePanel(): JPanel {
+    private fun createPerformancePanel(analytics: VectorAnalytics): JPanel {
         val panel = JPanel()
         panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
         panel.border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
@@ -254,7 +426,7 @@ class VectorAnalyticsDialog(
         return panel
     }
     
-    private fun createUsageStatusPanel(): JPanel {
+    private fun createUsageStatusPanel(analytics: VectorAnalytics): JPanel {
         val panel = JPanel(BorderLayout())
         panel.border = BorderFactory.createTitledBorder("Usage Status")
         
@@ -307,28 +479,19 @@ class VectorAnalyticsDialog(
     
     private fun getUsageColor(status: com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus): Color {
         return when (status) {
+            com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.UNUSED -> Color(244, 67, 54)
+            com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.RARELY_USED -> Color(255, 152, 0)
+            com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.USED -> Color(255, 193, 7)
             com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.FREQUENTLY_USED -> Color(76, 175, 80)
-            com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.USED -> Color(139, 195, 74)
-            com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.RARELY_USED -> Color(255, 193, 7)
-            com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.UNUSED -> Color(158, 158, 158)
         }
     }
     
-    private class OptimizationListCellRenderer : DefaultListCellRenderer() {
-        override fun getListCellRendererComponent(
-            list: JList<*>?,
-            value: Any?,
-            index: Int,
-            isSelected: Boolean,
-            cellHasFocus: Boolean
-        ): Component {
-            val component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-            
-            if (component is JLabel) {
-                component.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
-            }
-            
-            return component
+    private fun getPriorityColor(priority: Priority): Color {
+        return when (priority) {
+            Priority.LOW -> Color(76, 175, 80)
+            Priority.MEDIUM -> Color(255, 193, 7)
+            Priority.HIGH -> Color(255, 152, 0)
+            Priority.CRITICAL -> Color(244, 67, 54)
         }
     }
 } 

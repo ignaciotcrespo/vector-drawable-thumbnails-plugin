@@ -50,19 +50,41 @@ class VectorUIController(
     private val FILTER_DEBOUNCE_DELAY = 300L
     private val SLIDER_DEBOUNCE_DELAY = 150L
     
+    // Add pagination display
+    private var paginatedDisplay: PaginatedVectorDisplay? = null
+    
     fun initialize() {
-//        println("VectorUIController: Initializing...")
+        initializeUI()
+        loadVectorsWhenReady()
+    }
+    
+    /**
+     * Initialize UI components without loading vectors.
+     * This prevents IDE freezing on startup.
+     */
+    fun initializeUI() {
+//        println("VectorUIController: Initializing UI...")
 //        println("VectorUIController: btnRefresh = ${view.btnRefresh}")
 //        println("VectorUIController: panelVectors = ${view.panelVectors}")
 //        println("VectorUIController: textFilter = ${view.textFilter}")
+        setupPaginatedDisplay()
         setupEventListeners()
         subscribeToServiceState()
+//        println("VectorUIController: UI initialization complete")
+    }
+    
+    /**
+     * Load vectors when the tool window is ready and visible.
+     * This is called separately from UI initialization to prevent startup freezing.
+     */
+    fun loadVectorsWhenReady() {
+        println("VectorUIController: Loading vectors when ready...")
         loadVectors()
-//        println("VectorUIController: Initialization complete")
     }
     
     fun dispose() {
         disposables.clear()
+        paginatedDisplay?.dispose()
         debounceExecutor.shutdown()
         try {
             if (!debounceExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
@@ -352,72 +374,21 @@ class VectorUIController(
         SwingUtilities.invokeLater {
             val items = vectorService.getFilteredAndSortedVectors()
             
-            // Update result count immediately
-            view.labelResultCount?.text = "${items.size} vectors"
-            
-            // Only update display if there are reasonable number of items or if forced
-            if (items.size <= 1000) {
-                displayVectors(items)
-            } else {
-                // For very large result sets, show a message and limit display
-                val limitedItems = items.take(500)
-                view.labelResultCount?.text = "${items.size} vectors (showing first 500)"
-                displayVectors(limitedItems)
-            }
+            // Always display all items - no artificial limits
+            displayVectors(items)
         }
     }
     
     private fun displayVectors(items: List<VectorItem>) {
-        println("VectorUIController: Displaying ${items.size} vectors")
+        println("VectorUIController: Displaying ${items.size} vectors with pagination")
         
-        // Clear existing components efficiently
-        view.panelVectors.removeAll()
+        // Update result count in the main view
+        view.labelResultCount?.text = "${items.size} vectors"
         
-        // Set up grid layout for better organization
-        val columns = calculateOptimalColumns(items.size)
-        view.panelVectors.layout = GridLayout(0, columns, 8, 8)
+        // Use paginated display for efficient loading
+        paginatedDisplay?.setItems(items)
         
-        // Batch process vector panels to avoid UI freezing
-        val batchSize = 50
-        var processedCount = 0
-        
-        items.chunked(batchSize).forEach { batch ->
-            SwingUtilities.invokeLater {
-                batch.forEach { item ->
-                    // Analytics should already be generated and persisted
-                    if (item.analytics == null) {
-                        println("VectorUIController: WARNING - No analytics for ${item.name}, generating on-demand")
-                        val analytics = analyticsService.analyzeVector(item)
-                        vectorService.updateVectorAnalytics(item, analytics)
-                        println("VectorUIController: Generated analytics for ${item.name} - complexity: ${analytics.complexityScore}")
-                    }
-                    
-                    val vectorPanel = VectorItemPanel(item, project)
-                    view.panelVectors.add(vectorPanel)
-                }
-                
-                processedCount += batch.size
-                
-                // Update UI after each batch
-                view.panelVectors.revalidate()
-                view.panelVectors.repaint()
-                
-                // Update progress if needed
-                if (processedCount >= items.size) {
-                    println("VectorUIController: Display update complete - ${items.size} vectors")
-                }
-            }
-        }
-    }
-    
-    private fun calculateOptimalColumns(itemCount: Int): Int {
-        return when {
-            itemCount <= 4 -> 2
-            itemCount <= 9 -> 3
-            itemCount <= 16 -> 4
-            itemCount <= 25 -> 5
-            else -> 6
-        }
+        println("VectorUIController: Paginated display updated with ${items.size} vectors")
     }
     
     private fun mapSortStringToCriteria(sortString: String): SortCriteria {
@@ -452,104 +423,128 @@ class VectorUIController(
     }
     
     private fun loadVectors() {
-        println("VectorUIController: Starting to load vectors...")
+        println("VectorUIController: Starting ultra-fast vector loading...")
         
-        // Run in background task with progress indicator
-        com.intellij.openapi.progress.ProgressManager.getInstance().run(
-            object : com.intellij.openapi.progress.Task.Backgroundable(project, "Loading Vector Drawables", true) {
-                override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                    indicator.text = "Searching for vector drawable files..."
-                    indicator.isIndeterminate = false
-                    indicator.fraction = 0.0
-                    
-                    val disposable = vectorService.loadVectors(project)
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(Schedulers.computation())
-                        .doOnNext { vectorItem ->
-                            // Update progress
-                            SwingUtilities.invokeLater {
-                                indicator.text2 = "Processing: ${vectorItem.name}"
-                            }
-                        }
-                        .subscribe(
-                            { vectorItem ->
-                                // Check for cancellation
-                                if (indicator.isCanceled) return@subscribe
-                                
-                                // Vector item loaded successfully - generate analytics immediately
-                                println("VectorUIController: Loaded vector: ${vectorItem.name}")
-                                if (vectorItem.analytics == null) {
-                                    val analytics = analyticsService.analyzeVector(vectorItem)
-                                    vectorService.updateVectorAnalytics(vectorItem, analytics)
-                                    println("VectorUIController: Generated analytics for ${vectorItem.name} - complexity: ${analytics.complexityScore}")
-                                }
-                            },
-                            { error ->
-                                if (!indicator.isCanceled) {
-                                    println("VectorUIController: Error loading vector: ${error.message}")
-                                    error.printStackTrace()
-                                }
-                            },
-                            {
-                                if (!indicator.isCanceled) {
-                                    // Loading completed - generate usage analysis for all vectors
-                                    println("VectorUIController: Vector loading completed, generating usage analytics...")
-                                    indicator.text = "Analyzing vector usage..."
-                                    indicator.fraction = 0.8
-                                    
-                                    SwingUtilities.invokeLater {
-                                        generateUsageAnalyticsForAllVectors()
-                                        updateVectorDisplay()
-                                        indicator.fraction = 1.0
-                                    }
-                                }
-                            }
-                        )
-                    disposables.add(disposable)
-                    
-                    // Wait for completion or cancellation
-                    while (!indicator.isCanceled && !disposable.isDisposed) {
-                        try {
-                            Thread.sleep(100)
-                        } catch (e: InterruptedException) {
-                            break
-                        }
-                    }
-                    
-                    if (indicator.isCanceled) {
-                        disposable.dispose()
-                    }
-                }
-            }
-        )
-    }
-    
-    private fun generateUsageAnalyticsForAllVectors() {
-        val vectors = vectorService.getAllVectors() // Get all vectors, not filtered ones
-        println("VectorUIController: Generating usage analytics for ${vectors.size} vectors")
-        
-        // Generate usage analysis for all vectors
-        val usageMap = analyticsService.analyzeUsage(project, vectors)
-        
-        // Update vectors with usage information
-        vectors.forEach { vector ->
-            if (vector.analytics != null) {
-                val updatedAnalytics = vector.analytics.copy(
-                    usageStatus = usageMap[vector] ?: vector.analytics.usageStatus,
-                    usageCount = when (usageMap[vector]) {
-                        com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.FREQUENTLY_USED -> 10
-                        com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.USED -> 5
-                        com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.UsageStatus.RARELY_USED -> 2
-                        else -> 0
-                    }
-                )
-                // Update the vector in the repository
-                vectorService.updateVectorAnalytics(vector, updatedAnalytics)
-                println("VectorUIController: Updated usage for ${vector.name} - status: ${updatedAnalytics.usageStatus}")
-            }
+        // Show loading state immediately
+        SwingUtilities.invokeLater {
+            view.btnRefresh.text = "Loading..."
+            view.panelFilter.enableAll(false)
+            paginatedDisplay?.setItems(emptyList())
         }
         
-        println("VectorUIController: Usage analytics generation completed")
+        // Ultra-fast loading: Show vectors immediately without ANY analytics
+        Thread {
+            try {
+                println("VectorUIController: Ultra-fast loading - no analytics, no blocking operations")
+                
+                // Load vectors with minimal processing
+                val loadingDisposable = vectorService.loadVectors(project)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(Schedulers.computation())
+                    .subscribe(
+                        { vectorItem ->
+                            // Just load the vector, absolutely no processing
+                            // Don't even print to avoid I/O overhead
+                        },
+                        { error ->
+                            println("VectorUIController: Error loading vectors: ${error.message}")
+                            SwingUtilities.invokeLater {
+                                view.btnRefresh.text = "Refresh"
+                                view.panelFilter.enableAll(true)
+                            }
+                        },
+                        {
+                            // Vectors loaded - show immediately without any analytics
+                            SwingUtilities.invokeLater {
+                                println("VectorUIController: Vectors loaded - showing immediately without analytics")
+                                view.btnRefresh.text = "Refresh"
+                                view.panelFilter.enableAll(true)
+                                updateVectorDisplay() // Show vectors immediately
+                                
+                                // Start optional analytics in background (completely separate)
+                                startOptionalAnalytics()
+                            }
+                        }
+                    )
+                
+                disposables.add(loadingDisposable)
+                
+            } catch (e: Exception) {
+                println("VectorUIController: Exception in vector loading: ${e.message}")
+                SwingUtilities.invokeLater {
+                    view.btnRefresh.text = "Refresh"
+                    view.panelFilter.enableAll(true)
+                }
+            }
+        }.start()
+    }
+    
+    private fun startOptionalAnalytics() {
+        println("VectorUIController: Starting optional analytics in background (non-blocking)")
+        
+        // Run analytics completely in background with maximum yielding
+        Thread {
+            try {
+                // Wait a bit to let UI settle
+                Thread.sleep(500)
+                
+                val vectors = vectorService.getAllVectors()
+                println("VectorUIController: Starting background analytics for ${vectors.size} vectors")
+                
+                var processedCount = 0
+                val batchSize = 3 // Very small batches
+                val totalVectors = vectors.size
+                
+                // Process vectors in very small batches with maximum yielding
+                vectors.chunked(batchSize).forEachIndexed { batchIndex, batch ->
+                    // Process batch
+                    batch.forEach { vector ->
+                        try {
+                            // Generate analytics only if not already present
+                            if (vector.analytics == null) {
+                                val analytics = analyticsService.analyzeVector(vector)
+                                vectorService.updateVectorAnalytics(vector, analytics)
+                            }
+                            processedCount++
+                        } catch (e: Exception) {
+                            // Silently ignore errors to prevent console spam
+                        }
+                    }
+                    
+                    // Update UI progress very occasionally to avoid overwhelming
+                    if (batchIndex % 10 == 0) {
+                        SwingUtilities.invokeLater {
+                            val progress = (processedCount * 100) / totalVectors
+                            // Only update button text, don't update display to avoid UI work
+                            if (progress < 100) {
+                                view.btnRefresh.text = "Background: $progress%"
+                            }
+                        }
+                    }
+                    
+                    // Maximum yielding to prevent any UI blocking
+                    Thread.sleep(50) // Longer delay
+                    Thread.yield()
+                    
+                    // Additional yield every few batches
+                    if (batchIndex % 5 == 0) {
+                        Thread.sleep(100)
+                    }
+                }
+                
+                // Skip usage analytics entirely for now - too expensive
+                SwingUtilities.invokeLater {
+                    view.btnRefresh.text = "Refresh"
+                    println("VectorUIController: Background analytics completed (usage analysis skipped)")
+                }
+                
+            } catch (e: Exception) {
+                println("VectorUIController: Exception in background analytics: ${e.message}")
+                SwingUtilities.invokeLater {
+                    view.btnRefresh.text = "Refresh"
+                }
+            }
+        }.start()
     }
     
     private fun debouncedSliderUpdate() {
@@ -579,5 +574,17 @@ class VectorUIController(
     private fun updateSliderLabel(value: Int) {
         // Update slider tooltip or label for immediate visual feedback
         view.sliderFileSizeMax?.toolTipText = if (value >= 50) "No limit" else "${value}KB max"
+    }
+    
+    private fun setupPaginatedDisplay() {
+        // Replace the old panel with paginated display
+        paginatedDisplay = PaginatedVectorDisplay(project, analyticsService, pageSize = 50)
+        
+        // Replace the content of the existing panelVectors
+        view.panelVectors.removeAll()
+        view.panelVectors.layout = BorderLayout()
+        view.panelVectors.add(paginatedDisplay!!, BorderLayout.CENTER)
+        view.panelVectors.revalidate()
+        view.panelVectors.repaint()
     }
 } 

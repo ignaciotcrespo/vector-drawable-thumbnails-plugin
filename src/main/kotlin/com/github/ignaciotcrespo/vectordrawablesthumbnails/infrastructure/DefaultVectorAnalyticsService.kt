@@ -27,15 +27,19 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
         // Check cache first
         analyticsCache[cacheKey]?.let { return it }
         
+        // Read XML content once and reuse
         val xmlContent = vectorItem.validFile.file.readText()
+        
+        // Parse document once for efficiency
         val document = parseXmlDocument(xmlContent)
         
+        // Calculate all metrics efficiently
         val pathCount = countPaths(document)
-        val complexityScore = calculateComplexityScore(vectorItem)
+        val complexityScore = calculateComplexityScoreOptimized(vectorItem, xmlContent, document)
         val complexityLevel = determineComplexityLevel(pathCount)
-        val estimatedRenderTime = estimateRenderTime(vectorItem)
-        val optimizationSuggestions = generateOptimizationSuggestions(vectorItem)
-        val tags = extractTags(vectorItem)
+        val estimatedRenderTime = estimateRenderTimeOptimized(complexityScore, vectorItem)
+        val optimizationSuggestions = generateOptimizationSuggestionsOptimized(vectorItem, xmlContent)
+        val tags = extractTagsOptimized(vectorItem)
         val hasAnimations = detectAnimations(document)
         val colorCount = countColors(document)
         
@@ -66,19 +70,43 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
         
         val usageMap = mutableMapOf<VectorItem, UsageStatus>()
         
-        vectors.forEach { vector ->
-            val usageCount = findUsageInProject(project, vector)
-            val status = when {
-                usageCount == 0 -> UsageStatus.UNUSED
-                usageCount >= 10 -> UsageStatus.FREQUENTLY_USED
-                usageCount >= 3 -> UsageStatus.USED
-                else -> UsageStatus.RARELY_USED
+        // For small batches, process more efficiently
+        if (vectors.size <= 10) {
+            // Process small batches with optimized search
+            vectors.forEachIndexed { index, vector ->
+                val usageCount = findUsageInProjectOptimized(project, vector)
+                val status = when {
+                    usageCount == 0 -> UsageStatus.UNUSED
+                    usageCount >= 10 -> UsageStatus.FREQUENTLY_USED
+                    usageCount >= 3 -> UsageStatus.USED
+                    else -> UsageStatus.RARELY_USED
+                }
+                usageMap[vector] = status
+                
+                // Yield every few vectors to prevent blocking
+                if (index % 3 == 0) {
+                    Thread.yield()
+                }
             }
-            usageMap[vector] = status
+        } else {
+            // For larger batches, use the original method
+            vectors.forEach { vector ->
+                val usageCount = findUsageInProject(project, vector)
+                val status = when {
+                    usageCount == 0 -> UsageStatus.UNUSED
+                    usageCount >= 10 -> UsageStatus.FREQUENTLY_USED
+                    usageCount >= 3 -> UsageStatus.USED
+                    else -> UsageStatus.RARELY_USED
+                }
+                usageMap[vector] = status
+            }
         }
         
-        // Cache the result
-        usageCache[projectCacheKey] = usageMap
+        // Only cache larger results to avoid memory bloat
+        if (vectors.size >= 50) {
+            usageCache[projectCacheKey] = usageMap
+        }
+        
         return usageMap
     }
     
@@ -241,7 +269,7 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
     }
     
     private fun findUsageInProject(project: Project, vector: VectorItem): Int {
-        try {
+        return try {
             val vectorName = vector.name.removeSuffix(".xml")
             val scope = GlobalSearchScope.projectScope(project)
             
@@ -279,9 +307,54 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
                 Thread.yield()
             }
             
-            return usageCount
+            usageCount
         } catch (e: Exception) {
-            return 0
+            println("Error finding usage for ${vector.name}: ${e.message}")
+            0
+        }
+    }
+    
+    private fun findUsageInProjectOptimized(project: Project, vector: VectorItem): Int {
+        return try {
+            val vectorName = vector.name.removeSuffix(".xml")
+            val scope = GlobalSearchScope.projectScope(project)
+            
+            var usageCount = 0
+            
+            // Search patterns
+            val searchPattern = "@drawable/$vectorName"
+            val alternatePattern = "drawable/$vectorName"
+            
+            // Get layout files with smaller batch size for responsiveness
+            val layoutFiles = FilenameIndex.getAllFilesByExt(project, "xml", scope)
+                .filter { file -> 
+                    val path = file.path
+                    path.contains("/layout/") || path.contains("/layout-") || 
+                    path.contains("/menu/") || path.contains("/drawable/")
+                }
+            
+            // Process in smaller batches with more frequent yielding
+            layoutFiles.chunked(20).forEach { batch ->
+                batch.forEach { file ->
+                    try {
+                        val content = String(file.contentsToByteArray())
+                        if (content.contains(searchPattern) || content.contains(alternatePattern)) {
+                            usageCount++
+                        }
+                    } catch (e: Exception) {
+                        // Ignore files that can't be read
+                    }
+                }
+                
+                // More frequent yielding for better responsiveness
+                Thread.yield()
+                Thread.sleep(5) // Small delay to prevent overwhelming
+            }
+            
+            usageCount
+        } catch (e: Exception) {
+            println("Error finding usage for ${vector.name}: ${e.message}")
+            0
         }
     }
     
@@ -292,5 +365,111 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
     fun clearCache() {
         analyticsCache.clear()
         usageCache.clear()
+    }
+    
+    private fun calculateComplexityScoreOptimized(vectorItem: VectorItem, xmlContent: String, document: Document?): Int {
+        var score = 0
+        
+        // Base score from path count (already calculated)
+        val pathCount = countPaths(document)
+        score += pathCount * 2
+        
+        // Additional complexity factors using pre-loaded content
+        if (xmlContent.contains("gradient")) score += 10
+        if (xmlContent.contains("clip-path")) score += 5
+        if (xmlContent.contains("transform")) score += 3
+        if (xmlContent.contains("animate")) score += 15
+        
+        // File size factor
+        score += (vectorItem.fileSize / 1024).toInt() // 1 point per KB
+        
+        return minOf(score, 100) // Cap at 100
+    }
+    
+    private fun estimateRenderTimeOptimized(complexityScore: Int, vectorItem: VectorItem): Long {
+        val baseTime = 100L // microseconds
+        
+        // Estimate based on complexity and size (avoid recalculating complexity)
+        return baseTime + (complexityScore * 10) + (vectorItem.viewportW * vectorItem.viewportH / 1000)
+    }
+    
+    private fun generateOptimizationSuggestionsOptimized(vectorItem: VectorItem, xmlContent: String): List<OptimizationSuggestion> {
+        val suggestions = mutableListOf<OptimizationSuggestion>()
+        
+        // File size suggestions
+        if (vectorItem.fileSize > 5 * 1024) { // > 5KB
+            suggestions.add(
+                OptimizationSuggestion(
+                    type = OptimizationType.REDUCE_PRECISION,
+                    description = "Reduce decimal precision in path data",
+                    potentialSavings = "10-20% file size reduction",
+                    priority = Priority.MEDIUM
+                )
+            )
+        }
+        
+        if (vectorItem.fileSize > 10 * 1024) { // > 10KB
+            suggestions.add(
+                OptimizationSuggestion(
+                    type = OptimizationType.SIMPLIFY_CURVES,
+                    description = "Simplify complex curves and paths",
+                    potentialSavings = "15-30% file size reduction",
+                    priority = Priority.HIGH
+                )
+            )
+        }
+        
+        // Complexity suggestions using pre-loaded content
+        if (xmlContent.contains("transform=")) {
+            suggestions.add(
+                OptimizationSuggestion(
+                    type = OptimizationType.REMOVE_REDUNDANT_GROUPS,
+                    description = "Remove unnecessary group transformations",
+                    potentialSavings = "5-15% file size reduction",
+                    priority = Priority.LOW
+                )
+            )
+        }
+        
+        return suggestions
+    }
+    
+    private fun extractTagsOptimized(vectorItem: VectorItem): List<String> {
+        val tags = mutableListOf<String>()
+        val fileName = vectorItem.name.lowercase()
+        
+        // Extract semantic meaning from filename (optimized with when expressions)
+        when {
+            fileName.contains("ic_") -> tags.add("icon")
+            fileName.contains("btn_") -> tags.add("button")
+            fileName.contains("bg_") -> tags.add("background")
+        }
+        
+        // Common icon categories (combined checks for efficiency)
+        when {
+            fileName.contains("home") || fileName.contains("menu") || 
+            fileName.contains("back") || fileName.contains("arrow") -> tags.add("navigation")
+            fileName.contains("search") || fileName.contains("add") || 
+            fileName.contains("plus") || fileName.contains("delete") || 
+            fileName.contains("remove") || fileName.contains("edit") -> tags.add("action")
+            fileName.contains("share") || fileName.contains("heart") || 
+            fileName.contains("like") || fileName.contains("star") || 
+            fileName.contains("favorite") -> tags.add("social")
+        }
+        
+        // Size categories
+        when {
+            vectorItem.isSquare -> tags.add("square")
+            vectorItem.aspectRatio > 1.5 -> tags.add("wide")
+            vectorItem.aspectRatio < 0.67 -> tags.add("tall")
+        }
+        
+        // Complexity tags
+        when {
+            vectorItem.fileSize > 5 * 1024 -> tags.add("complex")
+            vectorItem.fileSize < 1024 -> tags.add("simple")
+        }
+        
+        return tags.distinct()
     }
 } 
