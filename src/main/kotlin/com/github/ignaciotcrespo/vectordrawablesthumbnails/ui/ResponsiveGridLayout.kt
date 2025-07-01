@@ -30,21 +30,23 @@ class ResponsiveGridLayout(
             return Dimension(insets.left + insets.right, insets.top + insets.bottom)
         }
         
-        // Use parent width if available, otherwise use a reasonable default
-        val availableWidth = if (parent.width > 0) {
-            parent.width - insets.left - insets.right
-        } else {
-            800 // Default width for initial layout
+        // Try to get the viewport width from the scroll pane ancestor
+        val scrollPane = javax.swing.SwingUtilities.getAncestorOfClass(javax.swing.JScrollPane::class.java, parent) as? javax.swing.JScrollPane
+        val viewportWidth = scrollPane?.viewport?.width ?: 0
+        
+        // Use viewport width if available and valid, otherwise use parent width or default
+        val availableWidth = when {
+            viewportWidth > 0 -> viewportWidth - insets.left - insets.right
+            parent.width > 0 -> parent.width - insets.left - insets.right
+            else -> 800 // Default width for initial layout
         }
         
         val columns = calculateColumns(availableWidth)
         val rows = calculateRows(componentCount, columns)
         
-        val width = if (parent.width > 0) {
-            parent.width // Use full parent width
-        } else {
-            columns * itemWidth + (columns - 1) * hgap + insets.left + insets.right
-        }
+        // Always calculate width based on actual content, not parent width
+        // This ensures proper scrolling behavior
+        val width = columns * itemWidth + (columns - 1) * hgap + insets.left + insets.right
         
         val height = rows * itemHeight + (rows - 1) * vgap + insets.top + insets.bottom
         
@@ -58,7 +60,18 @@ class ResponsiveGridLayout(
     
     override fun layoutContainer(parent: Container) {
         val insets = parent.insets
-        val availableWidth = parent.width - insets.left - insets.right
+        
+        // Try to get the viewport width from the scroll pane ancestor
+        val scrollPane = javax.swing.SwingUtilities.getAncestorOfClass(javax.swing.JScrollPane::class.java, parent) as? javax.swing.JScrollPane
+        val viewportWidth = scrollPane?.viewport?.width ?: 0
+        
+        // Use viewport width if available and valid, otherwise use parent width
+        val availableWidth = if (viewportWidth > 0) {
+            viewportWidth - insets.left - insets.right
+        } else {
+            parent.width - insets.left - insets.right
+        }
+        
         val columns = calculateColumns(availableWidth)
         
         var x = insets.left
@@ -81,6 +94,9 @@ class ResponsiveGridLayout(
                 x += itemWidth + hgap
             }
         }
+        
+        // Force parent to use our preferred size for proper scrolling
+        parent.preferredSize = preferredLayoutSize(parent)
     }
     
     private fun calculateColumns(availableWidth: Int): Int {

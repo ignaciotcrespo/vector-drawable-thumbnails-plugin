@@ -52,11 +52,8 @@ class PaginatedVectorDisplay(
     private fun setupLayout() {
         layout = BorderLayout()
         
-        // Main vector display area with scroll
-        val scrollPane = JScrollPane(vectorPanel)
-        scrollPane.verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
-        scrollPane.horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
-        add(scrollPane, BorderLayout.CENTER)
+        // Main vector display area WITHOUT scroll (parent already provides scroll)
+        add(vectorPanel, BorderLayout.CENTER)
         
         // Bottom panel with pagination and status
         val bottomPanel = JPanel(BorderLayout())
@@ -97,6 +94,10 @@ class PaginatedVectorDisplay(
     private fun setupVectorPanel() {
         vectorPanel.background = Color.WHITE
         // Layout will be set dynamically based on content
+        // Ensure the panel can expand as needed for proper scrolling
+        vectorPanel.preferredSize = null
+        vectorPanel.minimumSize = null
+        vectorPanel.maximumSize = null
     }
     
     /**
@@ -151,8 +152,12 @@ class PaginatedVectorDisplay(
                 vectorPanel.add(placeholder)
             }
             
+            // Revalidate to trigger layout recalculation
             vectorPanel.revalidate()
             vectorPanel.repaint()
+            
+            // Also revalidate the parent container to ensure scroll pane updates
+            this.revalidate()
             
             // Start viewport monitoring after a short delay to let layout settle
             SwingUtilities.invokeLater {
@@ -237,16 +242,20 @@ class PaginatedVectorDisplay(
     }
     
     private fun loadVisiblePlaceholders() {
-        val scrollPane = SwingUtilities.getAncestorOfClass(JScrollPane::class.java, vectorPanel) as? JScrollPane
+        // Look for scroll pane in the parent hierarchy (from VectorDrawablesView)
+        val scrollPane = SwingUtilities.getAncestorOfClass(JScrollPane::class.java, this) as? JScrollPane
         if (scrollPane == null) return
         
         val viewport = scrollPane.viewport
         val viewRect = viewport.viewRect
         
+        // Calculate the visible area relative to vectorPanel
+        val panelPoint = SwingUtilities.convertPoint(viewport, viewRect.location, vectorPanel)
+        
         // Add some buffer for smoother experience
         val bufferedRect = Rectangle(
-            viewRect.x,
-            maxOf(0, viewRect.y - 200), // Load 200px above visible area
+            panelPoint.x,
+            maxOf(0, panelPoint.y - 200), // Load 200px above visible area
             viewRect.width,
             viewRect.height + 400 // Load 200px below visible area
         )
@@ -279,7 +288,7 @@ class PaginatedVectorDisplay(
         
         // Show loading state
         SwingUtilities.invokeLater {
-            val loadingLabel = placeholder.components.find { it is JLabel && (it as JLabel).text == "Loading..." } as? JLabel
+            val loadingLabel = placeholder.components.find { it is JLabel && it.text == "Loading..." } as? JLabel
             if (loadingLabel != null) {
                 loadingLabel.text = if (isPriority) "Priority loading..." else "Loading..."
                 loadingLabel.foreground = if (isPriority) Color.BLUE else Color.GRAY
