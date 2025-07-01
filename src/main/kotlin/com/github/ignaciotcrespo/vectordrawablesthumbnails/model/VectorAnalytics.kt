@@ -18,6 +18,7 @@ data class VectorAnalytics(
     val tags: List<String> = emptyList(),
     val hasAnimations: Boolean = false,
     val colorCount: Int = 1,
+    val colors: Set<String> = emptySet(),
     val aspectRatio: Double
 ) {
     /**

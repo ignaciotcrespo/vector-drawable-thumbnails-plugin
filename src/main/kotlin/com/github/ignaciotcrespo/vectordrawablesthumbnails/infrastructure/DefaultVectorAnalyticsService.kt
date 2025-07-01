@@ -42,7 +42,7 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
         val optimizationSuggestions = generateOptimizationSuggestionsOptimized(vectorItem, xmlContent)
         val tags = extractTagsOptimized(vectorItem)
         val hasAnimations = detectAnimations(document)
-        val colorCount = countColors(document)
+        val colors = extractColors(document)
         
         val analytics = VectorAnalytics(
             complexityScore = complexityScore,
@@ -54,7 +54,8 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
             usageStatus = UsageStatus.UNUSED, // Will be updated by usage analysis
             tags = tags,
             hasAnimations = hasAnimations,
-            colorCount = colorCount,
+            colorCount = colors.size,
+            colors = colors,
             aspectRatio = vectorItem.aspectRatio
         )
         
@@ -208,36 +209,40 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
         }
     }
     
-    private fun countColors(document: Document?): Int {
+    private fun extractColors(document: Document?): Set<String> {
         return try {
             val colorSet = mutableSetOf<String>()
             
-            // Count fill colors
+            // Extract fill colors
             val pathElements = document?.getElementsByTagName("path")
             if (pathElements != null) {
                 for (i in 0 until pathElements.length) {
                     val element = pathElements.item(i)
                     val fillColor = element.attributes?.getNamedItem("android:fillColor")?.nodeValue
                     if (fillColor != null && fillColor.startsWith("#")) {
-                        colorSet.add(fillColor)
+                        colorSet.add(fillColor.uppercase())
                     }
                 }
             }
             
-            // Count stroke colors
+            // Extract stroke colors
             if (pathElements != null) {
                 for (i in 0 until pathElements.length) {
                     val element = pathElements.item(i)
                     val strokeColor = element.attributes?.getNamedItem("android:strokeColor")?.nodeValue
                     if (strokeColor != null && strokeColor.startsWith("#")) {
-                        colorSet.add(strokeColor)
+                        colorSet.add(strokeColor.uppercase())
                     }
                 }
             }
             
-            maxOf(colorSet.size, 1) // At least 1 color
+            if (colorSet.isEmpty()) {
+                setOf("#000000") // Default black if no colors found
+            } else {
+                colorSet
+            }
         } catch (e: Exception) {
-            1
+            setOf("#000000")
         }
     }
     

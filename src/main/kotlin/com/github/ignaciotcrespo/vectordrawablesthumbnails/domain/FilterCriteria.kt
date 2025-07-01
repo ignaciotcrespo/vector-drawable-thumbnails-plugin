@@ -12,7 +12,9 @@ data class FilterCriteria(
     val tags: List<String> = emptyList(),
     val usageStatus: UsageStatus? = null,
     val hasAnimations: Boolean? = null,
-    val hasOptimizationSuggestions: Boolean? = null
+    val hasOptimizationSuggestions: Boolean? = null,
+    val colors: Set<String> = emptySet(),
+    val colorMatchMode: ColorMatchMode = ColorMatchMode.ANY
 )
 
 /**
@@ -33,4 +35,12 @@ enum class ComplexityLevel {
     MODERATE,    // 6-15 paths
     COMPLEX,     // 16-30 paths
     VERY_COMPLEX // 30+ paths
+}
+
+/**
+ * Represents how colors should be matched when filtering.
+ */
+enum class ColorMatchMode {
+    ANY,     // Match vectors containing any of the selected colors
+    ALL      // Match vectors containing all of the selected colors
 } 

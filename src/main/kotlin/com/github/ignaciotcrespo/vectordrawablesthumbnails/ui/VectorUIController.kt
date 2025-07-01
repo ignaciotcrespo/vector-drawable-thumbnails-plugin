@@ -46,6 +46,9 @@ class VectorUIController(
     private var filterDebounceTask: ScheduledFuture<*>? = null
     private var sliderDebounceTask: ScheduledFuture<*>? = null
     
+    // Color filter state
+    private var currentSelectedColors: Set<String> = emptySet()
+    
     // Debounce delays in milliseconds
     private val FILTER_DEBOUNCE_DELAY = 300L
     private val SLIDER_DEBOUNCE_DELAY = 150L
@@ -103,6 +106,7 @@ class VectorUIController(
         setupSortControls()
         setupAdvancedFilters()
         setupPresetButtons()
+        setupColorFilter()
     }
     
     private fun setupDonateButton() {
@@ -223,6 +227,16 @@ class VectorUIController(
         }
     }
     
+    private fun setupColorFilter() {
+        view.colorFilterPanel?.setColorSelectionListener { selectedColors ->
+            currentSelectedColors = selectedColors
+            updateAdvancedFilter()
+        }
+        
+        // Initialize with empty color palette
+        view.colorFilterPanel?.updateColors(emptyMap())
+    }
+    
     private fun updateAdvancedFilter() {
         PerformanceMonitor.measure("Advanced Filter Update") {
             val criteria = buildFilterCriteria()
@@ -275,6 +289,9 @@ class VectorUIController(
         // Optimization suggestions filter - check if vectors have actual optimization suggestions
         val hasOptimizationSuggestions = if (view.checkShowOptimizable?.isSelected == true) true else null
         
+        // Color filter
+        val selectedColors = currentSelectedColors
+        
         val criteria = com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.FilterCriteria(
             text = textFilter,
             fileSizeRange = fileSizeRange,
@@ -282,6 +299,7 @@ class VectorUIController(
             tags = tags,
             usageStatus = usageStatus,
             hasAnimations = hasAnimations,
+            colors = selectedColors,
             hasOptimizationSuggestions = hasOptimizationSuggestions
         )
         
@@ -385,10 +403,29 @@ class VectorUIController(
         // Update result count in the main view
         view.labelResultCount?.text = "${items.size} vectors"
         
+        // Calculate color frequencies from all vectors (not just displayed ones)
+        updateColorPalette()
+        
         // Use paginated display for efficient loading
         paginatedDisplay?.setItems(items)
         
         println("VectorUIController: Paginated display updated with ${items.size} vectors")
+    }
+    
+    private fun updateColorPalette() {
+        // Get all vectors (not filtered) to show all available colors
+        val allVectors = vectorService.getAllVectors()
+        val colorFrequencies = mutableMapOf<String, Int>()
+        
+        // Count color occurrences across all vectors
+        allVectors.forEach { vector ->
+            vector.analytics?.colors?.forEach { color ->
+                colorFrequencies[color] = colorFrequencies.getOrDefault(color, 0) + 1
+            }
+        }
+        
+        // Update the color filter panel
+        view.colorFilterPanel?.updateColors(colorFrequencies)
     }
     
     private fun mapSortStringToCriteria(sortString: String): SortCriteria {

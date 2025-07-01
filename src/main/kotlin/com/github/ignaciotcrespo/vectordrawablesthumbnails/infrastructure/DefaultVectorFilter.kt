@@ -1,5 +1,6 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ColorMatchMode
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.FilterCriteria
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorFilter
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
@@ -22,9 +23,10 @@ class DefaultVectorFilter : VectorFilter {
             val usageMatch = matchesUsageFilter(item, criteria.usageStatus)
             val animationMatch = matchesAnimationFilter(item, criteria.hasAnimations)
             val optimizationMatch = matchesOptimizationSuggestionsFilter(item, criteria.hasOptimizationSuggestions)
+            val colorMatch = matchesColorFilter(item, criteria.colors, criteria.colorMatchMode)
             
             val matches = textMatch && sizeMatch && complexityMatch && fileSizeMatch && 
-                         tagsMatch && usageMatch && animationMatch && optimizationMatch
+                         tagsMatch && usageMatch && animationMatch && optimizationMatch && colorMatch
             
             if (!matches && (criteria.complexityLevel != null || criteria.usageStatus != null)) {
                 println("DefaultVectorFilter: ${item.name} filtered out - complexity: ${item.analytics?.complexityLevel} (want: ${criteria.complexityLevel}), usage: ${item.analytics?.usageStatus} (want: ${criteria.usageStatus})")
@@ -93,5 +95,17 @@ class DefaultVectorFilter : VectorFilter {
         if (hasOptimizationSuggestions == null) return true
         
         return item.analytics?.hasOptimizationSuggestions == hasOptimizationSuggestions
+    }
+    
+    private fun matchesColorFilter(item: VectorItem, colors: Set<String>, matchMode: ColorMatchMode): Boolean {
+        if (colors.isEmpty()) return true
+        
+        val itemColors = item.analytics?.colors ?: emptySet()
+        if (itemColors.isEmpty()) return false
+        
+        return when (matchMode) {
+            ColorMatchMode.ANY -> colors.any { color -> itemColors.contains(color) }
+            ColorMatchMode.ALL -> colors.all { color -> itemColors.contains(color) }
+        }
     }
 } 

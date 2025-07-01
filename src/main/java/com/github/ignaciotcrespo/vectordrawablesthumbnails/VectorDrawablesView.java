@@ -30,6 +30,7 @@ public class VectorDrawablesView {
     private JButton btnPresetComplex;
     private JButton btnPresetOptimizable;
     private JLabel labelResultCount;
+    private com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.ColorFilterPanel colorFilterPanel;
 
     public VectorDrawablesView() {
 //        System.out.println("VectorDrawablesView: Constructor called");
@@ -145,6 +146,10 @@ public class VectorDrawablesView {
         return labelResultCount;
     }
 
+    public com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.ColorFilterPanel getColorFilterPanel() {
+        return colorFilterPanel;
+    }
+
     private void createUIComponents() {
         panelMain = new JPanel();
         panelMain.setLayout(new BorderLayout());
@@ -220,6 +225,10 @@ public class VectorDrawablesView {
         JPanel presetsPanel = createPresetsPanel();
         tabbedPane.addTab("Presets", presetsPanel);
 //        System.out.println("VectorDrawablesView: Added Presets tab");
+        
+        // Colors tab
+        colorFilterPanel = new com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.ColorFilterPanel();
+        tabbedPane.addTab("Colors", colorFilterPanel);
         
         mainFilterPanel.add(tabbedPane, BorderLayout.CENTER);
 //        System.out.println("VectorDrawablesView: Enhanced filter panel created with " + tabbedPane.getTabCount() + " tabs");
