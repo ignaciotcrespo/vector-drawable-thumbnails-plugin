@@ -16,7 +16,7 @@
     <depends optional="true" config-file="java-support.xml">com.intellij.modules.java</depends>
     
     <!-- Language support for broader compatibility -->
-    <depends optional="true">com.intellij.modules.lang</depends>
+    <depends optional="true" config-file="lang-support.xml">com.intellij.modules.lang</depends>
 
     <description><![CDATA[
     <h2>Vector Drawable Thumbnails Plugin</h2>
