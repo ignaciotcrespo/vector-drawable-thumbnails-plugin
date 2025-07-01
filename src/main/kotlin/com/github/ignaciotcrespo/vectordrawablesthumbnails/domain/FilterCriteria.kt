@@ -14,7 +14,8 @@ data class FilterCriteria(
     val hasAnimations: Boolean? = null,
     val hasOptimizationSuggestions: Boolean? = null,
     val colors: Set<String> = emptySet(),
-    val colorMatchMode: ColorMatchMode = ColorMatchMode.ANY
+    val colorMatchMode: ColorMatchMode = ColorMatchMode.ANY,
+    val colorCountRange: IntRange? = null
 )
 
 /**

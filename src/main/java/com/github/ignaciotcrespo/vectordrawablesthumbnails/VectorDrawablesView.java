@@ -22,6 +22,7 @@ public class VectorDrawablesView {
     private JComboBox comboComplexityFilter;
     private JComboBox comboUsageFilter;
     private JSlider sliderFileSizeMax;
+    private JSlider sliderColorCount;
     private JTextField textTagsFilter;
     private JCheckBox checkShowAnimated;
     private JCheckBox checkShowOptimizable;
@@ -112,6 +113,10 @@ public class VectorDrawablesView {
 
     public JSlider getSliderFileSizeMax() {
         return sliderFileSizeMax;
+    }
+    
+    public JSlider getSliderColorCount() {
+        return sliderColorCount;
     }
 
     public JTextField getTextTagsFilter() {
@@ -226,9 +231,9 @@ public class VectorDrawablesView {
         tabbedPane.addTab("Presets", presetsPanel);
 //        System.out.println("VectorDrawablesView: Added Presets tab");
         
-        // Colors tab
-        colorFilterPanel = new com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.ColorFilterPanel();
-        tabbedPane.addTab("Colors", colorFilterPanel);
+        // Colors tab with both color filter and color count slider
+        JPanel colorsTabPanel = createColorsTabPanel();
+        tabbedPane.addTab("Colors", colorsTabPanel);
         
         mainFilterPanel.add(tabbedPane, BorderLayout.CENTER);
 //        System.out.println("VectorDrawablesView: Enhanced filter panel created with " + tabbedPane.getTabCount() + " tabs");
@@ -384,6 +389,61 @@ public class VectorDrawablesView {
             "• <b>Optimizable:</b> Vectors with optimization opportunities</html>");
         descLabel.setForeground(Color.GRAY);
         panel.add(descLabel, gbc);
+        
+        return panel;
+    }
+    
+    private JPanel createColorsTabPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        
+        // Add color count slider at the top
+        JPanel colorCountPanel = new JPanel(new BorderLayout());
+        colorCountPanel.setBorder(BorderFactory.createTitledBorder("Filter by Number of Colors"));
+        
+        sliderColorCount = new JSlider(-1, 10, -1); // -1: all, 0-10 colors
+        sliderColorCount.setMajorTickSpacing(1);
+        sliderColorCount.setPaintTicks(true);
+        sliderColorCount.setPaintLabels(true);
+        
+        // Create custom labels for the slider
+        java.util.Hashtable<Integer, JLabel> labelTable = new java.util.Hashtable<>();
+        labelTable.put(-1, new JLabel("All"));
+        for (int i = 0; i <= 10; i++) {
+            labelTable.put(i, new JLabel(String.valueOf(i)));
+        }
+        sliderColorCount.setLabelTable(labelTable);
+        sliderColorCount.setToolTipText("All: no filter, 0: no colors, 1-9: exactly that many colors, 10: 10 or more colors");
+        
+        // Add value label for immediate feedback
+        JLabel colorCountLabel = new JLabel("All (no filter)");
+        colorCountLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        colorCountLabel.setFont(colorCountLabel.getFont().deriveFont(Font.BOLD));
+        
+        // Update label when slider changes
+        sliderColorCount.addChangeListener(e -> {
+            JSlider slider = (JSlider) e.getSource();
+            int value = slider.getValue();
+            if (value == -1) {
+                colorCountLabel.setText("All (no filter)");
+            } else if (value == 0) {
+                colorCountLabel.setText("Exactly 0 colors");
+            } else if (value == 1) {
+                colorCountLabel.setText("Exactly 1 color");
+            } else if (value < 10) {
+                colorCountLabel.setText("Exactly " + value + " colors");
+            } else {
+                colorCountLabel.setText("10 or more colors");
+            }
+        });
+        
+        colorCountPanel.add(sliderColorCount, BorderLayout.CENTER);
+        colorCountPanel.add(colorCountLabel, BorderLayout.SOUTH);
+        
+        // Add color filter panel below
+        colorFilterPanel = new com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.ColorFilterPanel();
+        
+        panel.add(colorCountPanel, BorderLayout.NORTH);
+        panel.add(colorFilterPanel, BorderLayout.CENTER);
         
         return panel;
     }

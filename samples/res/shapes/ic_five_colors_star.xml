@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Five color vector: 5 colors (star with different colored points) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFF0000"
+        android:pathData="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    <path
+        android:fillColor="#FF00FF00"
+        android:pathData="M12 2l-1.5 3h3z" />
+    <path
+        android:fillColor="#FF0000FF"
+        android:pathData="M22 9.27l-3 0.5 1.5 2.23z" />
+    <path
+        android:fillColor="#FFFF00FF"
+        android:pathData="M2 9.27l1.5 2.23 1.5-2.23z" />
+    <path
+        android:fillColor="#FF00FFFF"
+        android:pathData="M12 17.77l-1.5 1.5h3z" />
+</vector>

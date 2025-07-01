@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Two color vector: 2 colors (blue and green) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF0000FF"
+        android:pathData="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
+    <path
+        android:fillColor="#FF00FF00"
+        android:pathData="M12 2v20c5.16-1.26 9-6.45 9-12V7l-9-4.5z" />
+</vector>

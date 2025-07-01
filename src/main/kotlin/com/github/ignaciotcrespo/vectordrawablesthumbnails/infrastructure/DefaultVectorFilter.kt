@@ -24,9 +24,10 @@ class DefaultVectorFilter : VectorFilter {
             val animationMatch = matchesAnimationFilter(item, criteria.hasAnimations)
             val optimizationMatch = matchesOptimizationSuggestionsFilter(item, criteria.hasOptimizationSuggestions)
             val colorMatch = matchesColorFilter(item, criteria.colors, criteria.colorMatchMode)
+            val colorCountMatch = matchesColorCountFilter(item, criteria.colorCountRange)
             
             val matches = textMatch && sizeMatch && complexityMatch && fileSizeMatch && 
-                         tagsMatch && usageMatch && animationMatch && optimizationMatch && colorMatch
+                         tagsMatch && usageMatch && animationMatch && optimizationMatch && colorMatch && colorCountMatch
             
             if (!matches && (criteria.complexityLevel != null || criteria.usageStatus != null)) {
                 println("DefaultVectorFilter: ${item.name} filtered out - complexity: ${item.analytics?.complexityLevel} (want: ${criteria.complexityLevel}), usage: ${item.analytics?.usageStatus} (want: ${criteria.usageStatus})")
@@ -107,5 +108,12 @@ class DefaultVectorFilter : VectorFilter {
             ColorMatchMode.ANY -> colors.any { color -> itemColors.contains(color) }
             ColorMatchMode.ALL -> colors.all { color -> itemColors.contains(color) }
         }
+    }
+    
+    private fun matchesColorCountFilter(item: VectorItem, colorCountRange: IntRange?): Boolean {
+        if (colorCountRange == null) return true
+        
+        val colorCount = item.analytics?.colors?.size ?: 0
+        return colorCount in colorCountRange
     }
 } 

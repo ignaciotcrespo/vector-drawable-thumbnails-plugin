@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Seven color vector: 7 colors (rainbow) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFF0000"
+        android:pathData="M2 12a10 10 0 0 1 20 0z" />
+    <path
+        android:fillColor="#FFFF7F00"
+        android:pathData="M4 12a8 8 0 0 1 16 0z" />
+    <path
+        android:fillColor="#FFFFFF00"
+        android:pathData="M6 12a6 6 0 0 1 12 0z" />
+    <path
+        android:fillColor="#FF00FF00"
+        android:pathData="M8 12a4 4 0 0 1 8 0z" />
+    <path
+        android:fillColor="#FF0000FF"
+        android:pathData="M10 12a2 2 0 0 1 4 0z" />
+    <path
+        android:fillColor="#FF4B0082"
+        android:pathData="M11 12a1 1 0 0 1 2 0z" />
+    <path
+        android:fillColor="#FF9400D3"
+        android:pathData="M11.5 12a0.5 0.5 0 0 1 1 0z" />
+</vector>

@@ -196,6 +196,20 @@ class VectorUIController(
             }
         }
         
+        // Color count slider - debounced for smooth dragging
+        view.sliderColorCount?.addChangeListener { e ->
+            val slider = e.source as JSlider
+            
+            // Only trigger filtering when user stops dragging or on final value
+            if (!slider.valueIsAdjusting) {
+                // Immediate update when user releases slider
+                updateAdvancedFilter()
+            } else {
+                // Debounced update while dragging for smooth experience
+                debouncedSliderUpdate()
+            }
+        }
+        
         // Tags filter - debounced for smooth typing
         view.textTagsFilter?.document?.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) = debouncedUpdateAdvancedFilter()
@@ -292,6 +306,16 @@ class VectorUIController(
         // Color filter
         val selectedColors = currentSelectedColors
         
+        // Color count filter
+        val colorCount = view.sliderColorCount?.value ?: -1
+        val colorCountRange = when (colorCount) {
+            -1 -> null // All - no filter
+            0 -> 0..0 // Exactly 0 colors
+            in 1..9 -> colorCount..colorCount // Exactly that many colors
+            10 -> 10..Int.MAX_VALUE // 10 or more colors
+            else -> null
+        }
+        
         val criteria = com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.FilterCriteria(
             text = textFilter,
             fileSizeRange = fileSizeRange,
@@ -300,7 +324,8 @@ class VectorUIController(
             usageStatus = usageStatus,
             hasAnimations = hasAnimations,
             colors = selectedColors,
-            hasOptimizationSuggestions = hasOptimizationSuggestions
+            hasOptimizationSuggestions = hasOptimizationSuggestions,
+            colorCountRange = colorCountRange
         )
         
         println("VectorUIController: Built filter criteria - $criteria")
@@ -314,6 +339,7 @@ class VectorUIController(
         view.comboComplexityFilter?.selectedItem = "All"
         view.comboUsageFilter?.selectedItem = "All"
         view.sliderFileSizeMax?.value = 50
+        view.sliderColorCount?.value = -1
         view.checkShowAnimated?.isSelected = false
         view.checkShowOptimizable?.isSelected = false
         
