@@ -16,7 +16,7 @@ import java.awt.Desktop
 import java.awt.GridLayout
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
-import java.net.URL
+import java.net.URI
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
@@ -108,7 +108,7 @@ class VectorUIController(
     private fun setupDonateButton() {
         view.btnDonate.addActionListener {
             try {
-                Desktop.getDesktop().browse(URL("https://paypal.me/itcrespo").toURI())
+                Desktop.getDesktop().browse(URI("https://paypal.me/itcrespo"))
             } catch (e: Exception) {
                 e.printStackTrace()
             }
