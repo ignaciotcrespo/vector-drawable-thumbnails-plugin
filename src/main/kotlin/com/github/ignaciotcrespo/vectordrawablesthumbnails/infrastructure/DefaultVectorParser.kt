@@ -113,23 +113,61 @@ class DefaultVectorParser(private val colorResourceResolver: ColorResourceResolv
     private fun resolveColorReferences(xml: String, project: Project): String {
         var resolvedXml = xml
         
-        // Find all color references
-        val colorReferencePattern = "@color/(\\w+)".toRegex()
-        val matches = colorReferencePattern.findAll(xml)
-        
-        matches.forEach { match ->
-            val colorReference = match.value
-            val resolvedColor = colorResourceResolver.resolveColorReference(colorReference, project)
+        try {
+            // Find all color references including Android system colors
+            val colorReferencePatterns = listOf(
+                "@color/(\\w+)".toRegex(),
+                "@android:color/(\\w+)".toRegex(),
+                "@\\+id/color/(\\w+)".toRegex()
+            )
             
-            if (resolvedColor != null) {
-                // Replace the reference with the resolved color
-                resolvedXml = resolvedXml.replace(colorReference, resolvedColor)
-            } else {
-                // Fallback to black if color not found
-                resolvedXml = resolvedXml.replace(colorReference, "#000000")
+            val allMatches = mutableSetOf<MatchResult>()
+            colorReferencePatterns.forEach { pattern ->
+                allMatches.addAll(pattern.findAll(xml))
             }
+            
+            // Sort matches by position to handle nested references correctly
+            val sortedMatches = allMatches.sortedByDescending { it.range.first }
+            
+            sortedMatches.forEach { match ->
+                val colorReference = match.value
+                
+                try {
+                    val resolvedColor = colorResourceResolver.resolveColorReference(colorReference, project)
+                    
+                    if (resolvedColor != null && resolvedColor.startsWith("#")) {
+                        // Only replace if we got a valid hex color
+                        resolvedXml = resolvedXml.replace(colorReference, resolvedColor)
+                    } else {
+                        // Log unresolved references for debugging
+                        LOG.debug("Could not resolve color reference: $colorReference")
+                        // Keep original reference or use fallback based on configuration
+                        resolvedXml = resolvedXml.replace(colorReference, "#000000")
+                    }
+                } catch (e: Exception) {
+                    LOG.warn("Error resolving individual color reference: $colorReference", e)
+                    // Use fallback color on error
+                    resolvedXml = resolvedXml.replace(colorReference, "#000000")
+                }
+            }
+            
+            // Handle theme attributes (not fully supported, use fallback)
+            val themeAttrPattern = "\\?attr/(\\w+)|\\?android:attr/(\\w+)".toRegex()
+            resolvedXml = themeAttrPattern.replace(resolvedXml) {
+                LOG.debug("Theme attribute not supported: ${it.value}")
+                "#808080" // Use gray for theme attributes
+            }
+            
+        } catch (e: Exception) {
+            LOG.error("Error resolving color references in XML", e)
+            // Return original XML on error
+            return xml
         }
         
         return resolvedXml
+    }
+    
+    companion object {
+        private val LOG = com.intellij.openapi.diagnostic.Logger.getInstance(DefaultVectorParser::class.java)
     }
 } 
