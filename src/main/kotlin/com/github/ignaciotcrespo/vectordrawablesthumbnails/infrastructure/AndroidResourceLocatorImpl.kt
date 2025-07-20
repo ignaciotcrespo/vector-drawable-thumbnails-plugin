@@ -33,7 +33,13 @@ class AndroidResourceLocatorImpl : AndroidResourceLocator {
             "build/intermediates",
             "build/generated",
             "build/outputs",
-            ".gradle/build"
+            ".gradle/build",
+            // Specific paths for merged resources in different AGP versions
+            "build/intermediates/incremental/merge*/merged.dir/values",
+            "build/intermediates/res/merged/*/values", 
+            "build/intermediates/merged_res/*/values",
+            "build/intermediates/incremental/mergeDebugResources/merged.dir/values",
+            "build/intermediates/incremental/mergeReleaseResources/merged.dir/values"
         )
     }
     
@@ -163,9 +169,45 @@ class AndroidResourceLocatorImpl : AndroidResourceLocator {
     
     private fun findBuildOutputFiles(moduleDir: VirtualFile, resultList: MutableList<VirtualFile>) {
         BUILD_DIR_PATTERNS.forEach { pattern ->
-            val buildDir = moduleDir.findFileByRelativePath(pattern)
-            if (buildDir != null && buildDir.exists()) {
-                findResourceFilesInDirectory(buildDir, resultList, true)
+            if (pattern.contains("*")) {
+                // Handle glob patterns
+                val parts = pattern.split("*")
+                if (parts.size == 2) {
+                    val prefix = parts[0]
+                    val suffix = parts[1]
+                    val parentDir = moduleDir.findFileByRelativePath(prefix.substringBeforeLast("/"))
+                    if (parentDir != null && parentDir.exists()) {
+                        parentDir.children.forEach { child ->
+                            if (child.isDirectory) {
+                                val targetPath = suffix.removePrefix("/")
+                                val targetDir = if (targetPath.isNotEmpty()) {
+                                    child.findFileByRelativePath(targetPath)
+                                } else {
+                                    child
+                                }
+                                if (targetDir != null && targetDir.exists()) {
+                                    findResourceFilesInDirectory(targetDir, resultList, true)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Handle exact paths
+                val buildDir = moduleDir.findFileByRelativePath(pattern)
+                if (buildDir != null && buildDir.exists()) {
+                    findResourceFilesInDirectory(buildDir, resultList, true)
+                }
+            }
+        }
+        
+        // Also look for app-specific build directories
+        moduleDir.children.filter { it.name == "app" || it.name.endsWith("-app") }.forEach { appDir ->
+            BUILD_DIR_PATTERNS.forEach { pattern ->
+                val buildDir = appDir.findFileByRelativePath(pattern)
+                if (buildDir != null && buildDir.exists()) {
+                    findResourceFilesInDirectory(buildDir, resultList, true)
+                }
             }
         }
     }
@@ -205,15 +247,88 @@ class AndroidResourceLocatorImpl : AndroidResourceLocator {
         resultList: MutableList<ResourceEntry>
     ) {
         try {
-            // For AAR files, resources are in res/values/
-            if (archiveFile.extension == "aar") {
-                val jarPath = archiveFile.path
-                // Note: In a real implementation, we would extract and read AAR contents
-                // For now, we'll log this as a TODO
-                LOG.debug("TODO: Extract resources from AAR: $jarPath")
+            when (archiveFile.extension) {
+                "aar" -> extractFromAar(archiveFile, resultList)
+                "jar" -> extractFromJar(archiveFile, resultList)
             }
         } catch (e: Exception) {
             LOG.debug("Error extracting resources from archive: ${archiveFile.path}", e)
+        }
+    }
+    
+    private fun extractFromAar(aarFile: VirtualFile, resultList: MutableList<ResourceEntry>) {
+        try {
+            // AAR files are ZIP archives containing res/values/ resources
+            val jarFileSystem = com.intellij.openapi.vfs.VfsUtil.findFileByURL(
+                java.net.URL("jar:${aarFile.url}!/")
+            )
+            
+            if (jarFileSystem != null) {
+                // Look for res/values directories
+                val resDir = jarFileSystem.findFileByRelativePath("res")
+                if (resDir != null && resDir.exists()) {
+                    resDir.children.filter { it.name.startsWith("values") }.forEach { valuesDir ->
+                        valuesDir.children.filter { it.extension == "xml" }.forEach { xmlFile ->
+                            try {
+                                val content = String(xmlFile.contentsToByteArray())
+                                resultList.add(ResourceEntry(
+                                    path = "aar:${aarFile.name}!/${xmlFile.path}",
+                                    content = content
+                                ))
+                            } catch (e: Exception) {
+                                LOG.debug("Error reading AAR resource: ${xmlFile.path}", e)
+                            }
+                        }
+                    }
+                }
+                
+                // Also check for R.txt
+                val rTxtFile = jarFileSystem.findFileByRelativePath("R.txt")
+                if (rTxtFile != null && rTxtFile.exists()) {
+                    try {
+                        val content = String(rTxtFile.contentsToByteArray())
+                        resultList.add(ResourceEntry(
+                            path = "aar:${aarFile.name}!/R.txt",
+                            content = content
+                        ))
+                    } catch (e: Exception) {
+                        LOG.debug("Error reading AAR R.txt", e)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            LOG.debug("Error extracting from AAR: ${aarFile.path}", e)
+        }
+    }
+    
+    private fun extractFromJar(jarFile: VirtualFile, resultList: MutableList<ResourceEntry>) {
+        try {
+            // JAR files might contain Android resources in META-INF
+            val jarFileSystem = com.intellij.openapi.vfs.VfsUtil.findFileByURL(
+                java.net.URL("jar:${jarFile.url}!/")
+            )
+            
+            if (jarFileSystem != null) {
+                // Look for Android resources in META-INF
+                val metaInf = jarFileSystem.findFileByRelativePath("META-INF")
+                if (metaInf != null && metaInf.exists()) {
+                    metaInf.children.filter { 
+                        it.name.endsWith("_colors.xml") || it.name == "R.txt"
+                    }.forEach { resourceFile ->
+                        try {
+                            val content = String(resourceFile.contentsToByteArray())
+                            resultList.add(ResourceEntry(
+                                path = "jar:${jarFile.name}!/${resourceFile.path}",
+                                content = content
+                            ))
+                        } catch (e: Exception) {
+                            LOG.debug("Error reading JAR resource: ${resourceFile.path}", e)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            LOG.debug("Error extracting from JAR: ${jarFile.path}", e)
         }
     }
 }
