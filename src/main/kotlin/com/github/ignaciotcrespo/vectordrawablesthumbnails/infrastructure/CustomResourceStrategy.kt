@@ -32,14 +32,6 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
         private val LOG = Logger.getInstance(CustomResourceStrategy::class.java)
         private const val CACHE_UPDATE_DELAY_MS = 500L
         
-        // Patterns for finding build directories dynamically
-        private val BUILD_DIR_PATTERNS = setOf(
-            "build",
-            ".gradle",
-            "app/build",
-            "library/build"
-        )
-        
         // Resource file patterns
         private val RESOURCE_FILE_NAMES = setOf(
             "colors.xml",
@@ -47,6 +39,9 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
             "R.txt"
         )
     }
+    
+    // Use AGPPathResolver for dynamic path resolution
+    private val pathResolver = AGPPathResolver()
     
     private val colorCache = ConcurrentHashMap<Project, Map<String, String>>()
     private val fileWatchers = mutableMapOf<Project, MutableList<VirtualFileListener>>()
@@ -173,9 +168,19 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
                     }
                 }
                 
-                // Dynamic build directory detection
-                findBuildDirectories(moduleDir).forEach { buildDir ->
-                    findResourceFiles(buildDir, locations)
+                // Use AGPPathResolver for dynamic build directory detection
+                pathResolver.findResourceOutputPaths(module).forEach { resourcePath ->
+                    locations.add(resourcePath)
+                }
+                
+                // Also check R.txt files for compiled resources
+                pathResolver.findRTxtFiles(module).forEach { rFile ->
+                    locations.add(rFile)
+                }
+                
+                // Check dependency resources
+                pathResolver.findDependencyResources(module).forEach { depResource ->
+                    locations.add(depResource)
                 }
             }
             
@@ -195,40 +200,14 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
     }
     
     private fun findBuildDirectories(moduleDir: VirtualFile): List<VirtualFile> {
-        val buildDirs = mutableListOf<VirtualFile>()
-        
-        BUILD_DIR_PATTERNS.forEach { pattern ->
-            moduleDir.findFileByRelativePath(pattern)?.let { buildDir ->
-                if (buildDir.exists() && buildDir.isDirectory) {
-                    // Look for intermediate/merged resources
-                    findMergedResourceDirectories(buildDir, buildDirs)
-                }
-            }
-        }
-        
-        return buildDirs
+        // This method is now deprecated in favor of AGPPathResolver
+        // Kept for backward compatibility
+        return emptyList()
     }
     
     private fun findMergedResourceDirectories(dir: VirtualFile, result: MutableList<VirtualFile>) {
-        if (!dir.isDirectory) return
-        
-        // Check if this directory contains merged resources
-        if (dir.name == "values" && dir.children.any { it.name in RESOURCE_FILE_NAMES }) {
-            result.add(dir)
-            return
-        }
-        
-        // Check for specific patterns that indicate merged resources
-        if (dir.name.contains("merge") && dir.name.contains("Resources")) {
-            dir.children.filter { it.isDirectory }.forEach { child ->
-                findMergedResourceDirectories(child, result)
-            }
-        } else if (dir.name == "intermediates" || dir.name == "generated") {
-            // Search deeper for resource directories
-            dir.children.filter { it.isDirectory }.forEach { child ->
-                findMergedResourceDirectories(child, result)
-            }
-        }
+        // This method is now deprecated in favor of AGPPathResolver
+        // Kept for backward compatibility
     }
     
     private fun findResourceFiles(dir: VirtualFile, result: MutableList<VirtualFile>) {

@@ -21,6 +21,10 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
+    // Instance variables for proper resource management
+    private val vfsListeners = ConcurrentHashMap<Project, com.intellij.openapi.vfs.VirtualFileListener>()
+    private val androidListeners = ConcurrentHashMap<Project, Any>()
+    
     companion object {
         private val LOG = Logger.getInstance(EnhancedAndroidResourceStrategy::class.java)
         
@@ -34,8 +38,10 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
         private const val RESOURCE_VALUE_CLASS = "com.android.ide.common.rendering.api.ResourceValue"
         private const val RESOURCE_REFERENCE_CLASS = "com.android.ide.common.rendering.api.ResourceReference"
         
-        // Cache for reflection
-        private val reflectionCache = ReflectionCache()
+        // Thread-safe lazy initialization of reflection cache
+        @Volatile
+        private var reflectionCache: ReflectionCache? = null
+        private val reflectionLock = Any()
         
         // Resource cache with proper invalidation
         private val resourceCache = ConcurrentHashMap<String, ConcurrentHashMap<String, String>>()
@@ -64,8 +70,8 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     override fun isAvailable(project: Project): Boolean {
         return try {
-            initializeReflection()
-            reflectionCache.initialized && hasAndroidModules(project)
+            val cache = getOrInitializeReflectionCache()
+            cache.initialized && hasAndroidModules(project)
         } catch (e: Exception) {
             LOG.debug("Android Studio resource integration not available", e)
             false
@@ -125,6 +131,9 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     override fun setupChangeListeners(project: Project, onChange: () -> Unit) {
         try {
+            // Remove any existing listeners first
+            removeChangeListeners(project)
+            
             // Set up VFS listeners for resource directories
             val vfsListener = object : com.intellij.openapi.vfs.VirtualFileListener {
                 override fun fileCreated(event: com.intellij.openapi.vfs.VirtualFileEvent) {
@@ -149,6 +158,8 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
                 }
             }
             
+            // Store the listener for proper cleanup
+            vfsListeners[project] = vfsListener
             VirtualFileManager.getInstance().addVirtualFileListener(vfsListener)
             
             // Also try to hook into Android's resource notification system
@@ -160,53 +171,114 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     }
     
     override fun dispose() {
+        // Clean up all listeners
+        vfsListeners.forEach { (project, listener) ->
+            try {
+                VirtualFileManager.getInstance().removeVirtualFileListener(listener)
+            } catch (e: Exception) {
+                LOG.debug("Error removing VFS listener", e)
+            }
+        }
+        vfsListeners.clear()
+        
+        // Clean up Android listeners
+        androidListeners.forEach { (project, listener) ->
+            try {
+                removeAndroidResourceListener(project, listener)
+            } catch (e: Exception) {
+                LOG.debug("Error removing Android resource listener", e)
+            }
+        }
+        androidListeners.clear()
+        
+        // Clear cache
         resourceCache.clear()
     }
     
-    private fun initializeReflection() {
-        if (reflectionCache.initialized) return
+    private fun removeChangeListeners(project: Project) {
+        // Remove VFS listener if exists
+        vfsListeners[project]?.let { listener ->
+            try {
+                VirtualFileManager.getInstance().removeVirtualFileListener(listener)
+            } catch (e: Exception) {
+                LOG.debug("Error removing VFS listener", e)
+            }
+        }
+        vfsListeners.remove(project)
         
+        // Remove Android listener if exists
+        androidListeners[project]?.let { listener ->
+            try {
+                removeAndroidResourceListener(project, listener)
+            } catch (e: Exception) {
+                LOG.debug("Error removing Android resource listener", e)
+            }
+        }
+        androidListeners.remove(project)
+    }
+    
+    private fun getOrInitializeReflectionCache(): ReflectionCache {
+        val currentCache = reflectionCache
+        if (currentCache?.initialized == true) {
+            return currentCache
+        }
+        
+        synchronized(reflectionLock) {
+            val doubleCheckCache = reflectionCache
+            if (doubleCheckCache?.initialized == true) {
+                return doubleCheckCache
+            }
+            
+            val newCache = ReflectionCache()
+            initializeReflectionCache(newCache)
+            reflectionCache = newCache
+            return newCache
+        }
+    }
+    
+    private fun initializeReflectionCache(cache: ReflectionCache) {
         try {
             // Load Android classes
-            reflectionCache.androidFacetClass = Class.forName(ANDROID_FACET_CLASS)
-            reflectionCache.appResourceRepoClass = Class.forName(APP_RESOURCE_REPO_CLASS)
-            reflectionCache.moduleResourceRepoClass = Class.forName(MODULE_RESOURCE_REPO_CLASS)
-            reflectionCache.localResourceRepoClass = Class.forName(LOCAL_RESOURCE_REPO_CLASS)
-            reflectionCache.resourceItemClass = Class.forName(RESOURCE_ITEM_CLASS)
-            reflectionCache.resourceTypeClass = Class.forName(RESOURCE_TYPE_CLASS)
-            reflectionCache.resourceValueClass = Class.forName(RESOURCE_VALUE_CLASS)
-            reflectionCache.resourceReferenceClass = Class.forName(RESOURCE_REFERENCE_CLASS)
+            cache.androidFacetClass = Class.forName(ANDROID_FACET_CLASS)
+            cache.appResourceRepoClass = Class.forName(APP_RESOURCE_REPO_CLASS)
+            cache.moduleResourceRepoClass = Class.forName(MODULE_RESOURCE_REPO_CLASS)
+            cache.localResourceRepoClass = Class.forName(LOCAL_RESOURCE_REPO_CLASS)
+            cache.resourceItemClass = Class.forName(RESOURCE_ITEM_CLASS)
+            cache.resourceTypeClass = Class.forName(RESOURCE_TYPE_CLASS)
+            cache.resourceValueClass = Class.forName(RESOURCE_VALUE_CLASS)
+            cache.resourceReferenceClass = Class.forName(RESOURCE_REFERENCE_CLASS)
             
             // Get methods
-            reflectionCache.getFacetMethod = reflectionCache.androidFacetClass?.getMethod("getInstance", Module::class.java)
-            reflectionCache.getAppResourcesMethod = reflectionCache.appResourceRepoClass?.getMethod("getOrCreateInstance", reflectionCache.androidFacetClass)
-            reflectionCache.getModuleResourcesMethod = reflectionCache.moduleResourceRepoClass?.getMethod("getOrCreateInstance", reflectionCache.androidFacetClass)
+            cache.getFacetMethod = cache.androidFacetClass?.getMethod("getInstance", Module::class.java)
+            cache.getAppResourcesMethod = cache.appResourceRepoClass?.getMethod("getOrCreateInstance", cache.androidFacetClass)
+            cache.getModuleResourcesMethod = cache.moduleResourceRepoClass?.getMethod("getOrCreateInstance", cache.androidFacetClass)
             
             // Get color type
-            reflectionCache.colorType = reflectionCache.resourceTypeClass?.getField("COLOR")?.get(null)
+            cache.colorType = cache.resourceTypeClass?.getField("COLOR")?.get(null)
             
             // Get resource methods
-            reflectionCache.getResourcesMethod = reflectionCache.localResourceRepoClass?.getMethod("getResources", reflectionCache.resourceTypeClass)
-            reflectionCache.getResourceValueMethod = reflectionCache.resourceItemClass?.getMethod("getResourceValue")
+            cache.getResourcesMethod = cache.localResourceRepoClass?.getMethod("getResources", cache.resourceTypeClass)
+            cache.getResourceValueMethod = cache.resourceItemClass?.getMethod("getResourceValue")
             
             // Get resolution methods
             val configurationClass = Class.forName("com.android.ide.common.resources.configuration.FolderConfiguration")
-            reflectionCache.resolveMethod = reflectionCache.resourceValueClass?.getMethod("resolve", reflectionCache.localResourceRepoClass, configurationClass)
-            reflectionCache.getResolvedValueMethod = reflectionCache.resourceValueClass?.getMethod("getValue")
-            reflectionCache.isFrameworkMethod = reflectionCache.resourceValueClass?.getMethod("isFramework")
+            cache.resolveMethod = cache.resourceValueClass?.getMethod("resolve", cache.localResourceRepoClass, configurationClass)
+            cache.getResolvedValueMethod = cache.resourceValueClass?.getMethod("getValue")
+            cache.isFrameworkMethod = cache.resourceValueClass?.getMethod("isFramework")
             
-            reflectionCache.initialized = true
+            cache.initialized = true
             
         } catch (e: Exception) {
             LOG.debug("Failed to initialize Android resource reflection", e)
-            reflectionCache.initialized = false
+            cache.initialized = false
         }
     }
     
     private fun hasAndroidModules(project: Project): Boolean {
+        val cache = getOrInitializeReflectionCache()
         return ModuleManager.getInstance(project).modules.any { module ->
             try {
-                reflectionCache.getFacetMethod?.invoke(null, module) != null
+                cache.getFacetMethod?.invoke(null, module) != null
             } catch (e: Exception) {
                 false
             }
@@ -215,26 +287,32 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     private fun resolveModuleColors(module: Module, colors: ConcurrentHashMap<String, String>) {
         try {
-            val facet = reflectionCache.getFacetMethod?.invoke(null, module) ?: return
+            val cache = getOrInitializeReflectionCache()
+            val facet = cache.getFacetMethod?.invoke(null, module) ?: return
             
             // Get both app and module resources for comprehensive coverage
             val repositories = listOf(
-                reflectionCache.getAppResourcesMethod?.invoke(null, facet),
-                reflectionCache.getModuleResourcesMethod?.invoke(null, facet)
+                cache.getAppResourcesMethod?.invoke(null, facet),
+                cache.getModuleResourcesMethod?.invoke(null, facet)
             ).filterNotNull()
             
+            val getResourcesMethod = cache.getResourcesMethod
+            val getResourceValueMethod = cache.getResourceValueMethod
+            val isFrameworkMethod = cache.isFrameworkMethod
+            val colorType = cache.colorType
+            
             repositories.forEach { repo ->
-                val colorItems = reflectionCache.getResourcesMethod?.invoke(repo, reflectionCache.colorType) as? Collection<*> ?: return@forEach
+                val colorItems = getResourcesMethod?.invoke(repo, colorType) as? Collection<*> ?: return@forEach
                 
                 colorItems.forEach items@{ item ->
                     try {
                         if (item == null) return@items
                         
-                        val resourceValue = reflectionCache.getResourceValueMethod?.invoke(item) ?: return@items
+                        val resourceValue = getResourceValueMethod?.invoke(item) ?: return@items
                         val name = item::class.java.getMethod("getName").invoke(item) as? String ?: return@items
                         
                         // Check if it's a framework resource
-                        val isFramework = reflectionCache.isFrameworkMethod?.invoke(resourceValue) as? Boolean ?: false
+                        val isFramework = isFrameworkMethod?.invoke(resourceValue) as? Boolean ?: false
                         val prefix = if (isFramework) "@android:color/" else "@color/"
                         val colorRef = "$prefix$name"
                         
@@ -256,27 +334,28 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     private fun resolveColorInModule(module: Module, colorRef: String): String? {
         try {
-            val facet = reflectionCache.getFacetMethod?.invoke(null, module) ?: return null
+            val cache = getOrInitializeReflectionCache()
+            val facet = cache.getFacetMethod?.invoke(null, module) ?: return null
             val colorName = colorRef.substringAfter("/")
             val isFramework = colorRef.startsWith("@android:")
             
             // Try app resources first, then module resources
             val repositories = listOf(
-                reflectionCache.getAppResourcesMethod?.invoke(null, facet),
-                reflectionCache.getModuleResourcesMethod?.invoke(null, facet)
+                cache.getAppResourcesMethod?.invoke(null, facet),
+                cache.getModuleResourcesMethod?.invoke(null, facet)
             ).filterNotNull()
             
             repositories.forEach { repo ->
                 try {
                     // Create ResourceReference for proper resolution
                     val namespace = if (isFramework) "android" else null
-                    val referenceConstructor = reflectionCache.resourceReferenceClass?.getConstructor(
-                        String::class.java, reflectionCache.resourceTypeClass, String::class.java
+                    val referenceConstructor = cache.resourceReferenceClass?.getConstructor(
+                        String::class.java, cache.resourceTypeClass, String::class.java
                     )
-                    val reference = referenceConstructor?.newInstance(namespace, reflectionCache.colorType, colorName)
+                    val reference = referenceConstructor?.newInstance(namespace, cache.colorType, colorName)
                     
                     // Get resource value
-                    val getResourceValueMethod = repo::class.java.getMethod("getResourceValue", reflectionCache.resourceReferenceClass)
+                    val getResourceValueMethod = repo::class.java.getMethod("getResourceValue", cache.resourceReferenceClass)
                     val resourceValue = getResourceValueMethod.invoke(repo, reference)
                     
                     if (resourceValue != null) {
@@ -295,16 +374,17 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     private fun resolveResourceValue(resourceValue: Any, repository: Any): String? {
         try {
+            val cache = getOrInitializeReflectionCache()
             // Get the raw value
-            var value = reflectionCache.getResolvedValueMethod?.invoke(resourceValue) as? String
+            var value = cache.getResolvedValueMethod?.invoke(resourceValue) as? String
             
             if (value != null) {
                 // If it's a reference, resolve it recursively
                 if (value.startsWith("@") || value.startsWith("?")) {
                     // Use Android's resource resolver
-                    val resolved = reflectionCache.resolveMethod?.invoke(resourceValue, repository, null)
+                    val resolved = cache.resolveMethod?.invoke(resourceValue, repository, null)
                     if (resolved != null && resolved != resourceValue) {
-                        value = reflectionCache.getResolvedValueMethod?.invoke(resolved) as? String
+                        value = cache.getResolvedValueMethod?.invoke(resolved) as? String
                     }
                 }
                 
@@ -352,8 +432,25 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
             val addListenerMethod = notificationManagerClass.getMethod("addListener", listenerInterface)
             addListenerMethod.invoke(manager, proxy)
             
+            // Store the listener for cleanup
+            androidListeners[project] = proxy
+            
         } catch (e: Exception) {
             LOG.debug("ResourceNotificationManager not available", e)
+        }
+    }
+    
+    private fun removeAndroidResourceListener(project: Project, listener: Any) {
+        try {
+            val notificationManagerClass = Class.forName("com.android.tools.idea.res.ResourceNotificationManager")
+            val listenerInterface = Class.forName("com.android.tools.idea.res.ResourceNotificationManager\$ResourceChangeListener")
+            val getInstanceMethod = notificationManagerClass.getMethod("getInstance", Project::class.java)
+            val manager = getInstanceMethod.invoke(null, project) ?: return
+            
+            val removeListenerMethod = notificationManagerClass.getMethod("removeListener", listenerInterface)
+            removeListenerMethod.invoke(manager, listener)
+        } catch (e: Exception) {
+            LOG.debug("Could not remove Android resource listener", e)
         }
     }
     
