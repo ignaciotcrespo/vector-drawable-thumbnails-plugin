@@ -65,7 +65,10 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
     override fun resolveColorReference(colorRef: String, project: Project): String? {
         return when {
             colorRef.startsWith("#") -> colorRef
-            colorRef.startsWith("@android:color/") -> AndroidSystemColors.resolve(colorRef)
+            colorRef.startsWith("@android:color/") -> {
+                val colorName = colorRef.substringAfter("@android:color/")
+                AndroidSystemColors.getSystemColor(colorName) ?: "#000000"
+            }
             colorRef.startsWith("@color/") -> {
                 val colors = getColorResources(project)
                 colors[colorRef] ?: colors["@color/${colorRef.substringAfter("@color/")}"]
@@ -344,31 +347,4 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
         }
     }
     
-    /**
-     * Android system colors resolver
-     */
-    private object AndroidSystemColors {
-        private val systemColors = mapOf(
-            "@android:color/black" to "#000000",
-            "@android:color/white" to "#FFFFFF",
-            "@android:color/transparent" to "#00000000",
-            "@android:color/holo_blue_dark" to "#0099CC",
-            "@android:color/holo_blue_light" to "#33B5E5",
-            "@android:color/holo_blue_bright" to "#00DDFF",
-            "@android:color/holo_green_dark" to "#669900",
-            "@android:color/holo_green_light" to "#99CC00",
-            "@android:color/holo_orange_dark" to "#FF8800",
-            "@android:color/holo_orange_light" to "#FFBB33",
-            "@android:color/holo_red_dark" to "#CC0000",
-            "@android:color/holo_red_light" to "#FF4444",
-            "@android:color/holo_purple" to "#AA66CC",
-            "@android:color/darker_gray" to "#AAAAAA",
-            "@android:color/background_dark" to "#000000",
-            "@android:color/background_light" to "#FFFFFF"
-        )
-        
-        fun resolve(colorRef: String): String {
-            return systemColors[colorRef] ?: "#000000"
-        }
-    }
 }

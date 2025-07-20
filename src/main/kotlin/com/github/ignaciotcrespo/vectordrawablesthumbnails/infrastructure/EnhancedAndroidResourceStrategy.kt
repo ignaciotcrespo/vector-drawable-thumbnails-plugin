@@ -110,6 +110,12 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
             return null
         }
         
+        // Handle Android system colors first
+        if (colorRef.startsWith("@android:color/")) {
+            val colorName = colorRef.substringAfter("@android:color/")
+            AndroidSystemColors.getSystemColor(colorName)?.let { return it }
+        }
+        
         try {
             // First check cache
             val cachedColors = getColorResources(project)

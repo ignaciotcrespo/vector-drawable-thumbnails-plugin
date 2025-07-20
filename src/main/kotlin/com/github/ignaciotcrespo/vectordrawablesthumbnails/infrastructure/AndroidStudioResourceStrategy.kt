@@ -212,21 +212,8 @@ class AndroidStudioResourceStrategy : ResourceManagementStrategy {
     }
     
     private fun resolveSystemColor(colorRef: String): String {
-        // Common Android system colors
-        return when (colorRef) {
-            "@android:color/black" -> "#000000"
-            "@android:color/white" -> "#FFFFFF"
-            "@android:color/transparent" -> "#00000000"
-            "@android:color/holo_blue_dark" -> "#0099CC"
-            "@android:color/holo_blue_light" -> "#33B5E5"
-            "@android:color/holo_green_dark" -> "#669900"
-            "@android:color/holo_green_light" -> "#99CC00"
-            "@android:color/holo_orange_dark" -> "#FF8800"
-            "@android:color/holo_orange_light" -> "#FFBB33"
-            "@android:color/holo_red_dark" -> "#CC0000"
-            "@android:color/holo_red_light" -> "#FF4444"
-            else -> "#000000"
-        }
+        val colorName = colorRef.substringAfter("@android:color/")
+        return AndroidSystemColors.getSystemColor(colorName) ?: "#000000"
     }
     
     private val project: Project? = null

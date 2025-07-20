@@ -21,14 +21,10 @@ class DefaultColorResourceResolver : ColorResourceResolver, Disposable {
     
     override fun resolveColorReference(colorReference: String, project: Project): String? {
         return try {
-            delegate.resolveColorReference(colorReference, project) ?: run {
-                // Fallback to black for better user experience
-                LOG.debug("Color reference not found: $colorReference, using fallback")
-                "#000000"
-            }
+            delegate.resolveColorReference(colorReference, project)
         } catch (e: Exception) {
             LOG.error("Error resolving color reference: $colorReference", e)
-            "#000000"
+            null
         }
     }
     
