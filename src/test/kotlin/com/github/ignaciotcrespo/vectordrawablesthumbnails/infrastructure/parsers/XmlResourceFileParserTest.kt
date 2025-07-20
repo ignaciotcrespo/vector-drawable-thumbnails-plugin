@@ -1,25 +1,21 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure.parsers
 
-import com.intellij.openapi.vfs.VirtualFile
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.BeforeEach
-import org.mockito.kotlin.*
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import com.intellij.testFramework.LightPlatformTestCase
+import com.intellij.testFramework.LightVirtualFile
+import org.junit.Test
 
-class XmlResourceFileParserTest {
+class XmlResourceFileParserTest : LightPlatformTestCase() {
     
     private lateinit var parser: XmlResourceFileParser
     
-    @BeforeEach
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         parser = XmlResourceFileParser()
     }
     
     @Test
     fun `parseResourceFile should extract direct hex colors`() {
         // Given
-        val mockFile = mock<VirtualFile>()
         val xmlContent = """
             <?xml version="1.0" encoding="utf-8"?>
             <resources>
@@ -27,10 +23,10 @@ class XmlResourceFileParserTest {
                 <color name="secondary">#00FF00</color>
             </resources>
         """.trimIndent()
-        whenever(mockFile.contentsToByteArray()).thenReturn(xmlContent.toByteArray())
+        val virtualFile = LightVirtualFile("colors.xml", xmlContent)
         
         // When
-        val result = parser.parseResourceFile(mockFile)
+        val result = parser.parseResourceFile(virtualFile)
         
         // Then
         assertEquals(2, result.size)
@@ -41,7 +37,6 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseResourceFile should extract color references`() {
         // Given
-        val mockFile = mock<VirtualFile>()
         val xmlContent = """
             <?xml version="1.0" encoding="utf-8"?>
             <resources>
@@ -49,10 +44,10 @@ class XmlResourceFileParserTest {
                 <color name="text_primary">@color/black</color>
             </resources>
         """.trimIndent()
-        whenever(mockFile.contentsToByteArray()).thenReturn(xmlContent.toByteArray())
+        val virtualFile = LightVirtualFile("colors.xml", xmlContent)
         
         // When
-        val result = parser.parseResourceFile(mockFile)
+        val result = parser.parseResourceFile(virtualFile)
         
         // Then
         assertEquals(2, result.size)
@@ -63,7 +58,6 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseResourceFile should extract Android system colors`() {
         // Given
-        val mockFile = mock<VirtualFile>()
         val xmlContent = """
             <?xml version="1.0" encoding="utf-8"?>
             <resources>
@@ -71,10 +65,10 @@ class XmlResourceFileParserTest {
                 <color name="text">@android:color/black</color>
             </resources>
         """.trimIndent()
-        whenever(mockFile.contentsToByteArray()).thenReturn(xmlContent.toByteArray())
+        val virtualFile = LightVirtualFile("colors.xml", xmlContent)
         
         // When
-        val result = parser.parseResourceFile(mockFile)
+        val result = parser.parseResourceFile(virtualFile)
         
         // Then
         assertEquals(2, result.size)
@@ -85,7 +79,6 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseResourceFile should uppercase hex colors`() {
         // Given
-        val mockFile = mock<VirtualFile>()
         val xmlContent = """
             <?xml version="1.0" encoding="utf-8"?>
             <resources>
@@ -93,10 +86,10 @@ class XmlResourceFileParserTest {
                 <color name="secondary">#00ff00</color>
             </resources>
         """.trimIndent()
-        whenever(mockFile.contentsToByteArray()).thenReturn(xmlContent.toByteArray())
+        val virtualFile = LightVirtualFile("colors.xml", xmlContent)
         
         // When
-        val result = parser.parseResourceFile(mockFile)
+        val result = parser.parseResourceFile(virtualFile)
         
         // Then
         assertEquals("#FF0000", result["primary"])
@@ -106,7 +99,6 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseResourceFile should handle empty color values`() {
         // Given
-        val mockFile = mock<VirtualFile>()
         val xmlContent = """
             <?xml version="1.0" encoding="utf-8"?>
             <resources>
@@ -114,10 +106,10 @@ class XmlResourceFileParserTest {
                 <color name="valid">#FF0000</color>
             </resources>
         """.trimIndent()
-        whenever(mockFile.contentsToByteArray()).thenReturn(xmlContent.toByteArray())
+        val virtualFile = LightVirtualFile("colors.xml", xmlContent)
         
         // When
-        val result = parser.parseResourceFile(mockFile)
+        val result = parser.parseResourceFile(virtualFile)
         
         // Then
         assertEquals(1, result.size)
@@ -128,13 +120,11 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseResourceFile should handle malformed XML gracefully`() {
         // Given
-        val mockFile = mock<VirtualFile>()
         val xmlContent = "This is not valid XML"
-        whenever(mockFile.contentsToByteArray()).thenReturn(xmlContent.toByteArray())
-        whenever(mockFile.path).thenReturn("/test/colors.xml")
+        val virtualFile = LightVirtualFile("colors.xml", xmlContent)
         
         // When
-        val result = parser.parseResourceFile(mockFile)
+        val result = parser.parseResourceFile(virtualFile)
         
         // Then
         assertTrue(result.isEmpty())
@@ -143,7 +133,6 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseRTxtFile should extract color names`() {
         // Given
-        val mockFile = mock<VirtualFile>()
         val rTxtContent = """
             int anim fade_in 0x7f010000
             int color colorPrimary 0x7f060001
@@ -151,11 +140,10 @@ class XmlResourceFileParserTest {
             int color colorAccent 0x7f060003
             int drawable ic_launcher 0x7f080000
         """.trimIndent()
-        val inputStream = rTxtContent.byteInputStream()
-        whenever(mockFile.inputStream).thenReturn(inputStream)
+        val virtualFile = LightVirtualFile("R.txt", rTxtContent)
         
         // When
-        val result = parser.parseRTxtFile(mockFile)
+        val result = parser.parseRTxtFile(virtualFile)
         
         // Then
         assertEquals(3, result.size)
@@ -167,12 +155,10 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseRTxtFile should handle empty file`() {
         // Given
-        val mockFile = mock<VirtualFile>()
-        val inputStream = "".byteInputStream()
-        whenever(mockFile.inputStream).thenReturn(inputStream)
+        val virtualFile = LightVirtualFile("R.txt", "")
         
         // When
-        val result = parser.parseRTxtFile(mockFile)
+        val result = parser.parseRTxtFile(virtualFile)
         
         // Then
         assertTrue(result.isEmpty())
@@ -181,12 +167,15 @@ class XmlResourceFileParserTest {
     @Test
     fun `parseRTxtFile should handle file read errors gracefully`() {
         // Given
-        val mockFile = mock<VirtualFile>()
-        whenever(mockFile.inputStream).thenThrow(RuntimeException("File not found"))
-        whenever(mockFile.path).thenReturn("/test/R.txt")
+        // Create a custom VirtualFile that throws exception on inputStream
+        val virtualFile = object : LightVirtualFile("R.txt", "") {
+            override fun getInputStream(): java.io.InputStream {
+                throw RuntimeException("File not found")
+            }
+        }
         
         // When
-        val result = parser.parseRTxtFile(mockFile)
+        val result = parser.parseRTxtFile(virtualFile)
         
         // Then
         assertTrue(result.isEmpty())
