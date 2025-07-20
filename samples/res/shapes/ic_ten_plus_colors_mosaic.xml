@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ten plus color vector: 12 colors (mosaic pattern) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFF0000"
+        android:pathData="M2 2h5v5H2z" />
+    <path
+        android:fillColor="#FF00FF00"
+        android:pathData="M7 2h5v5H7z" />
+    <path
+        android:fillColor="#FF0000FF"
+        android:pathData="M12 2h5v5H12z" />
+    <path
+        android:fillColor="#FFFFFF00"
+        android:pathData="M17 2h5v5H17z" />
+    <path
+        android:fillColor="#FFFF00FF"
+        android:pathData="M2 7h5v5H2z" />
+    <path
+        android:fillColor="#FF00FFFF"
+        android:pathData="M7 7h5v5H7z" />
+    <path
+        android:fillColor="#FFFF8800"
+        android:pathData="M12 7h5v5H12z" />
+    <path
+        android:fillColor="#FF8800FF"
+        android:pathData="M17 7h5v5H17z" />
+    <path
+        android:fillColor="#FF008800"
+        android:pathData="M2 12h5v5H2z" />
+    <path
+        android:fillColor="#FF880000"
+        android:pathData="M7 12h5v5H7z" />
+    <path
+        android:fillColor="#FF000088"
+        android:pathData="M12 12h5v5H12z" />
+    <path
+        android:fillColor="#FF888888"
+        android:pathData="M17 12h5v5H17z" />
+    <path
+        android:fillColor="#FFCCCCCC"
+        android:pathData="M2 17h10v5H2z" />
+    <path
+        android:fillColor="#FF333333"
+        android:pathData="M12 17h10v5H12z" />
+</vector>

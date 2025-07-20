@@ -22,6 +22,9 @@ class ConfigurableVectorSorter(
             SortCriteria.BY_HEIGHT -> items.sortedBy { it.viewportH }
             SortCriteria.BY_AREA -> items.sortedBy { it.viewportW * it.viewportH }
             SortCriteria.BY_FILE_SIZE -> items.sortedBy { it.fileSize }
+            SortCriteria.BY_COMPLEXITY -> items.sortedBy { it.analytics?.complexityScore ?: 0 }
+            SortCriteria.BY_USAGE_COUNT -> items.sortedBy { it.analytics?.usageCount ?: 0 }
+            SortCriteria.BY_TAGS -> items.sortedBy { it.analytics?.tags?.joinToString(",") ?: "" }
         }
         
         return when (direction) {

@@ -23,16 +23,16 @@ class DefaultVectorParser : VectorParser {
     override fun parseVectorFile(validFile: ValidFile): Observable<VectorItem> {
         return Observable.create<VectorItem> { emitter ->
             try {
-                println("Parsing vector file: ${validFile.file.name}")
+//                println("Parsing vector file: ${validFile.file.name}")
                 val vectorItem = parseVector(validFile)
                 if (vectorItem != null) {
-                    println("Successfully parsed vector: ${vectorItem.name}")
+//                    println("Successfully parsed vector: ${vectorItem.name}")
                     emitter.onNext(vectorItem)
                 } else {
-                    println("Failed to parse vector file: ${validFile.file.name}")
+//                    println("Failed to parse vector file: ${validFile.file.name}")
                 }
             } catch (t: Throwable) {
-                println("Error parsing vector file: ${validFile.file.name} - ${t.message}")
+//                println("Error parsing vector file: ${validFile.file.name} - ${t.message}")
                 t.printStackTrace()
                 // Don't emit anything for errors, just complete
             } finally {

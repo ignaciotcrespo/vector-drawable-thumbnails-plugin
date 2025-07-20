@@ -12,6 +12,7 @@ import com.intellij.ui.content.ContentFactory
  * Refactored to follow SOLID principles:
  * - Single Responsibility: Only responsible for creating the tool window
  * - Dependency Inversion: Depends on abstractions through dependency injection
+ * Enhanced to prevent IDE freezing by deferring vector loading until tool window is shown.
  */
 class VectorDrawablesToolWindowFactory : ToolWindowFactory {
     
@@ -21,10 +22,28 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
         val controller = VectorUIController(
             view = view,
             vectorService = dependencyContainer.vectorService,
+            analyticsService = dependencyContainer.analyticsService,
             project = project
         )
         
-        controller.initialize()
+        // Initialize UI components but don't load vectors yet
+        controller.initializeUI()
+        
+        // Add listener to load vectors only when tool window is first shown
+        var hasLoadedVectors = false
+        toolWindow.addContentManagerListener(object : com.intellij.ui.content.ContentManagerListener {
+            override fun contentAdded(event: com.intellij.ui.content.ContentManagerEvent) {
+                // Load vectors when content is first added and shown
+                if (!hasLoadedVectors) {
+                    hasLoadedVectors = true
+                    // Delay loading slightly to ensure UI is fully initialized
+                    javax.swing.SwingUtilities.invokeLater {
+                        controller.loadVectorsWhenReady()
+                    }
+                }
+            }
+        })
+        
         showContent(toolWindow, view.content)
     }
 

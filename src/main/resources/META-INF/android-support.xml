@@ -1,0 +1,27 @@
+<idea-plugin>
+    <!-- Enhanced Android Studio support -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Android-specific file type associations -->
+        <fileType 
+            name="Android Vector Drawable" 
+            implementationClass="com.intellij.ide.highlighter.XmlFileType" 
+            fieldName="INSTANCE" 
+            language="XML" 
+            extensions="xml"/>
+            
+        <!-- Android resource directory detection -->
+        <directoryProjectGenerator 
+            implementation="com.github.ignaciotcrespo.vectordrawablesthumbnails.android.AndroidVectorProjectGenerator"/>
+    </extensions>
+    
+    <actions>
+        <!-- Android-specific actions -->
+        <action 
+            id="VectorDrawable.OpenInAndroidStudio" 
+            class="com.github.ignaciotcrespo.vectordrawablesthumbnails.android.OpenInAndroidStudioAction"
+            text="Open Vector in Android Studio"
+            description="Open vector drawable in Android Studio's vector asset studio">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin> 

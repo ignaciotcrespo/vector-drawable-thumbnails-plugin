@@ -1,0 +1,9 @@
+<idea-plugin>
+    <!-- Language support extensions -->
+    <!-- This file is loaded when com.intellij.modules.lang is available -->
+    
+    <!-- Currently no specific language extensions needed -->
+    <!-- The plugin works with any language module present -->
+    <!-- This file exists to satisfy the config-file requirement -->
+    
+</idea-plugin>

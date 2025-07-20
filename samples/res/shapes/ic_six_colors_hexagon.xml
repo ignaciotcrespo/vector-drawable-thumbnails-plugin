@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Six color vector: 6 colors (hexagon with different colored segments) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFF0000"
+        android:pathData="M12 2L6 6v6l6 4 6-4V6z" />
+    <path
+        android:fillColor="#FFFF8800"
+        android:pathData="M12 2L18 6l-6 4z" />
+    <path
+        android:fillColor="#FFFFFF00"
+        android:pathData="M18 6v6l-6 4z" />
+    <path
+        android:fillColor="#FF00FF00"
+        android:pathData="M12 16l6 4v-8z" />
+    <path
+        android:fillColor="#FF0088FF"
+        android:pathData="M6 12l6 4v-4z" />
+    <path
+        android:fillColor="#FF8800FF"
+        android:pathData="M6 6v6l6-4z" />
+</vector>
