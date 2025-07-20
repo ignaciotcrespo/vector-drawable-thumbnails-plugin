@@ -121,7 +121,14 @@ class UnifiedColorResourceResolver : ColorResourceResolver, Disposable {
     }
     
     private fun createStrategy(project: Project): ResourceManagementStrategy {
-        // Try Android Studio native strategy first
+        // Try enhanced Android Studio native strategy first
+        val enhancedStrategy = EnhancedAndroidResourceStrategy()
+        if (enhancedStrategy.isAvailable(project)) {
+            LOG.info("Using enhanced Android Studio native resource management")
+            return enhancedStrategy
+        }
+        
+        // Try standard Android Studio strategy
         val androidStrategy = AndroidStudioResourceStrategy()
         if (androidStrategy.isAvailable(project)) {
             LOG.info("Using Android Studio native resource management")

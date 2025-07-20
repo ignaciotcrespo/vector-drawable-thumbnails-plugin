@@ -23,7 +23,7 @@ import kotlinx.coroutines.*
 class ImprovedColorResourceResolver(
     private val cacheManager: ColorCacheManager = DefaultColorCacheManager(),
     private val resourceParser: ResourceFileParser = XmlResourceFileParser(),
-    private val androidResourceLocator: AndroidResourceLocator = AndroidResourceLocatorImpl(),
+    private val androidResourceLocator: AndroidResourceLocator = FlexibleAndroidResourceLocator(),
     private val colorResolver: ColorResolver = ImprovedColorResolver(),
     private val cacheInvalidator: ResourceCacheInvalidator = ResourceCacheInvalidatorImpl(),
     private val cacheBuilder: ColorCacheBuilder = ColorCacheBuilder(androidResourceLocator, resourceParser)
