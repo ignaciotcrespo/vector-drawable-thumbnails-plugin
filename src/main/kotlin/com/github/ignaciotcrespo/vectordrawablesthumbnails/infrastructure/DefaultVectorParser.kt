@@ -1,9 +1,11 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 
 import com.android.ide.common.vectordrawable.VdPreview
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ColorResourceResolver
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorParser
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
+import com.intellij.openapi.project.Project
 import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
 import org.w3c.dom.Document
@@ -18,13 +20,13 @@ import javax.xml.parsers.DocumentBuilderFactory
  * Default implementation of VectorParser.
  * Follows the Single Responsibility Principle by focusing only on vector parsing logic.
  */
-class DefaultVectorParser : VectorParser {
+class DefaultVectorParser(private val colorResourceResolver: ColorResourceResolver) : VectorParser {
     
-    override fun parseVectorFile(validFile: ValidFile): Observable<VectorItem> {
+    override fun parseVectorFile(validFile: ValidFile, project: Project?): Observable<VectorItem> {
         return Observable.create<VectorItem> { emitter ->
             try {
 //                println("Parsing vector file: ${validFile.file.name}")
-                val vectorItem = parseVector(validFile)
+                val vectorItem = parseVector(validFile, project)
                 if (vectorItem != null) {
 //                    println("Successfully parsed vector: ${vectorItem.name}")
                     emitter.onNext(vectorItem)
@@ -41,7 +43,7 @@ class DefaultVectorParser : VectorParser {
         }
     }
 
-    private fun parseVector(validFile: ValidFile): VectorItem? {
+    private fun parseVector(validFile: ValidFile, project: Project?): VectorItem? {
         return try {
             var xml = FileInputStream(validFile.file).bufferedReader().use(BufferedReader::readText)
             
@@ -49,8 +51,11 @@ class DefaultVectorParser : VectorParser {
                 return null
             }
 
-            // Replace color references with default color
-            if (xml.contains("@color/")) {
+            // Replace color references with resolved colors
+            if (xml.contains("@color/") && project != null) {
+                xml = resolveColorReferences(xml, project)
+            } else if (xml.contains("@color/")) {
+                // Fallback to black if no project context
                 xml = xml.replace("@color/\\w+".toRegex(), "#000000")
             }
 
@@ -103,5 +108,28 @@ class DefaultVectorParser : VectorParser {
             println("Error generating preview image: ${e.message}")
             null
         }
+    }
+    
+    private fun resolveColorReferences(xml: String, project: Project): String {
+        var resolvedXml = xml
+        
+        // Find all color references
+        val colorReferencePattern = "@color/(\\w+)".toRegex()
+        val matches = colorReferencePattern.findAll(xml)
+        
+        matches.forEach { match ->
+            val colorReference = match.value
+            val resolvedColor = colorResourceResolver.resolveColorReference(colorReference, project)
+            
+            if (resolvedColor != null) {
+                // Replace the reference with the resolved color
+                resolvedXml = resolvedXml.replace(colorReference, resolvedColor)
+            } else {
+                // Fallback to black if color not found
+                resolvedXml = resolvedXml.replace(colorReference, "#000000")
+            }
+        }
+        
+        return resolvedXml
     }
 } 

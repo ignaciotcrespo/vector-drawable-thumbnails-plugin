@@ -23,7 +23,8 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
             view = view,
             vectorService = dependencyContainer.vectorService,
             analyticsService = dependencyContainer.analyticsService,
-            project = project
+            project = project,
+            colorResourceResolver = dependencyContainer.colorResolver
         )
         
         // Initialize UI components but don't load vectors yet

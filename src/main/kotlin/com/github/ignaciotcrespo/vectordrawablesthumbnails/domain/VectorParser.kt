@@ -2,6 +2,7 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.domain
 
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
+import com.intellij.openapi.project.Project
 import io.reactivex.Observable
 
 /**
@@ -9,5 +10,5 @@ import io.reactivex.Observable
  * Follows the Single Responsibility Principle by focusing only on vector parsing.
  */
 interface VectorParser {
-    fun parseVectorFile(validFile: ValidFile): Observable<VectorItem>
+    fun parseVectorFile(validFile: ValidFile, project: Project? = null): Observable<VectorItem>
 } 

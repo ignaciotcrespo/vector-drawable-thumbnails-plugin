@@ -3,6 +3,7 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.ui
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.VectorDrawablesView
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.application.VectorService
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.application.VectorServiceState
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ColorResourceResolver
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.SortCriteria
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.SortDirection
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorAnalyticsService
@@ -36,7 +37,8 @@ class VectorUIController(
     private val view: VectorDrawablesView,
     private val vectorService: VectorService,
     private val analyticsService: VectorAnalyticsService,
-    private val project: Project
+    private val project: Project,
+    private val colorResourceResolver: ColorResourceResolver? = null
 ) {
     
     private val disposables = CompositeDisposable()
@@ -499,6 +501,9 @@ class VectorUIController(
         Thread {
             try {
                 println("VectorUIController: Ultra-fast loading - no analytics, no blocking operations")
+                
+                // Build color cache before loading vectors
+                colorResourceResolver?.buildColorCache(project)
                 
                 // Load vectors with minimal processing
                 val loadingDisposable = vectorService.loadVectors(project)

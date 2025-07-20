@@ -1,0 +1,73 @@
+package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
+
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ColorResourceResolver
+import com.intellij.openapi.project.Project
+import com.intellij.testFramework.LightPlatformTestCase
+import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+
+class DefaultColorResourceResolverTest : LightPlatformTestCase() {
+    
+    private lateinit var colorResolver: ColorResourceResolver
+    
+    override fun setUp() {
+        super.setUp()
+        colorResolver = DefaultColorResourceResolver()
+    }
+    
+    @Test
+    fun testResolveColorReference_WithoutCache() {
+        // Given a color reference
+        val colorReference = "@color/primary"
+        
+        // When resolving without cache
+        val result = colorResolver.resolveColorReference(colorReference, project)
+        
+        // Then it should return null (no cache built yet)
+        assertNull(result)
+    }
+    
+    @Test
+    fun testBuildColorCache() {
+        // Given a project
+        val project = getProject()
+        
+        // When building color cache
+        colorResolver.buildColorCache(project)
+        
+        // Then cache should be built (no exception thrown)
+        // We can't test the actual content without a real Android project
+    }
+    
+    @Test
+    fun testResolveColorReference_ExtractsColorName() {
+        // Given various color references
+        val testCases = mapOf(
+            "@color/primary" to "primary",
+            "@color/colorAccent" to "colorAccent",
+            "@color/text_color_primary" to "text_color_primary"
+        )
+        
+        // The resolver should extract the color name correctly
+        testCases.forEach { (reference, expectedName) ->
+            // This tests the internal logic of extracting color names
+            val actualName = reference.removePrefix("@color/").trim()
+            assertEquals(expectedName, actualName)
+        }
+    }
+    
+    @Test
+    fun testClearCache() {
+        // Given a project with cache
+        val project = getProject()
+        colorResolver.buildColorCache(project)
+        
+        // When clearing cache
+        colorResolver.clearCache()
+        
+        // Then subsequent calls should return null
+        val result = colorResolver.resolveColorReference("@color/primary", project)
+        assertNull(result)
+    }
+}

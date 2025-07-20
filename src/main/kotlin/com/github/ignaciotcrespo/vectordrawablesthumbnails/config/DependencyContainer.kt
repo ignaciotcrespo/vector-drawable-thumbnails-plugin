@@ -13,8 +13,9 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure.*
 class DependencyContainer {
     
     // Infrastructure layer
+    private val colorResourceResolver: ColorResourceResolver by lazy { DefaultColorResourceResolver() }
     private val vectorFileSearcher: VectorFileSearcher by lazy { DefaultVectorFileSearcher() }
-    private val vectorParser: VectorParser by lazy { DefaultVectorParser() }
+    private val vectorParser: VectorParser by lazy { DefaultVectorParser(colorResourceResolver) }
     private val vectorFilter: VectorFilter by lazy { DefaultVectorFilter() }
     private val vectorSorterFactory: VectorSorterFactory by lazy { DefaultVectorSorterFactory() }
     private val vectorAnalyticsService: VectorAnalyticsService by lazy { DefaultVectorAnalyticsService() }
@@ -30,4 +31,6 @@ class DependencyContainer {
     }
     
     val analyticsService: VectorAnalyticsService get() = vectorAnalyticsService
+    
+    val colorResolver: ColorResourceResolver get() = colorResourceResolver
 } 

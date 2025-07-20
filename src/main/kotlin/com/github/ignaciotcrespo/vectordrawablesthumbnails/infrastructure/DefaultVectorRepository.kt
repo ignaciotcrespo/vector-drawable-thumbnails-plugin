@@ -30,7 +30,7 @@ class DefaultVectorRepository(
         return fileSearcher.searchVectorFiles(project)
             .subscribeOn(Schedulers.io())
             .observeOn(Schedulers.newThread())
-            .flatMap { validFile -> parser.parseVectorFile(validFile) }
+            .flatMap { validFile -> parser.parseVectorFile(validFile, project) }
             .doOnNext { vectorItem -> addVector(vectorItem) }
     }
     
