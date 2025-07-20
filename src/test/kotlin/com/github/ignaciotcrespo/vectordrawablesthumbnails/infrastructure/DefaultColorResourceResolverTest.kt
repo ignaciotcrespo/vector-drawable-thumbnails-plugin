@@ -4,7 +4,6 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ColorResourceR
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.LightPlatformTestCase
 import org.junit.Test
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertNotNull
