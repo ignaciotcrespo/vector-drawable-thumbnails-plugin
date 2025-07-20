@@ -1,19 +1,23 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ColorResourceResolver
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 
 /**
  * Default implementation of ColorResourceResolver.
  * Resolves color references from Android resource files.
  * 
- * This is now a facade that delegates to the improved implementation
- * to maintain backward compatibility while addressing code review issues.
+ * This implementation now uses the UnifiedColorResourceResolver which:
+ * - Integrates with Android Studio's resource APIs when available
+ * - Falls back to custom implementation for other IDEs
+ * - Addresses all code review feedback
  */
-class DefaultColorResourceResolver : ColorResourceResolver {
+class DefaultColorResourceResolver : ColorResourceResolver, Disposable {
     
-    // Delegate to the improved implementation that addresses all code review issues
-    private val delegate = ImprovedColorResourceResolver()
+    // Use the unified implementation that supports both Android Studio and custom strategies
+    private val delegate = UnifiedColorResourceResolver()
     
     override fun resolveColorReference(colorReference: String, project: Project): String? {
         return try {
@@ -50,6 +54,14 @@ class DefaultColorResourceResolver : ColorResourceResolver {
         } catch (e: Exception) {
             LOG.error("Error getting all color resources", e)
             emptyMap()
+        }
+    }
+    
+    override fun dispose() {
+        try {
+            Disposer.dispose(delegate)
+        } catch (e: Exception) {
+            LOG.error("Error disposing color resolver", e)
         }
     }
     
