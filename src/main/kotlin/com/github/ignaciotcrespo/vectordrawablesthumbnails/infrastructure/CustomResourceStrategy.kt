@@ -14,6 +14,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.*
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.*
+import com.intellij.util.messages.MessageBusConnection
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -44,7 +47,7 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
     private val pathResolver = AGPPathResolver()
     
     private val colorCache = ConcurrentHashMap<Project, Map<String, String>>()
-    private val fileWatchers = mutableMapOf<Project, MutableList<VirtualFileListener>>()
+    private val fileWatchers = mutableMapOf<Project, MessageBusConnection>()
     private val updateScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingUpdates = mutableMapOf<Project, Job>()
     
@@ -72,42 +75,35 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
     }
     
     override fun setupChangeListeners(project: Project, onChange: () -> Unit) {
-        // Set up VFS listeners for resource files
-        val listener = object : VirtualFileListener {
-            override fun fileCreated(event: VirtualFileEvent) {
-                if (isResourceFile(event.file)) {
-                    scheduleUpdate(project, onChange)
-                }
-            }
-            
-            override fun fileDeleted(event: VirtualFileEvent) {
-                if (isResourceFile(event.file)) {
-                    scheduleUpdate(project, onChange)
-                }
-            }
-            
-            override fun contentsChanged(event: VirtualFileEvent) {
-                if (isResourceFile(event.file)) {
-                    scheduleUpdate(project, onChange)
-                }
-            }
-            
-            override fun fileMoved(event: VirtualFileMoveEvent) {
-                if (isResourceFile(event.file)) {
-                    scheduleUpdate(project, onChange)
-                }
-            }
-        }
+        // Set up modern file listeners using message bus
+        val connection = project.messageBus.connect(this)
         
-        VirtualFileManager.getInstance().addVirtualFileListener(listener)
+        connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+            override fun after(events: MutableList<out VFileEvent>) {
+                val hasResourceChanges = events.any { event ->
+                    val file = when (event) {
+                        is VFileCreateEvent -> event.file
+                        is VFileDeleteEvent -> event.file
+                        is VFileContentChangeEvent -> event.file
+                        is VFileMoveEvent -> event.file
+                        else -> null
+                    }
+                    file != null && isResourceFile(file)
+                }
+                
+                if (hasResourceChanges) {
+                    scheduleUpdate(project, onChange)
+                }
+            }
+        })
         
-        fileWatchers.computeIfAbsent(project) { mutableListOf() }.add(listener)
+        fileWatchers[project] = connection
     }
     
     override fun dispose() {
         // Clean up listeners
-        fileWatchers.values.flatten().forEach { listener ->
-            VirtualFileManager.getInstance().removeVirtualFileListener(listener)
+        fileWatchers.values.forEach { connection ->
+            connection.disconnect()
         }
         fileWatchers.clear()
         
@@ -199,12 +195,14 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
         return locations
     }
     
+    @Suppress("UNUSED_PARAMETER")
     private fun findBuildDirectories(moduleDir: VirtualFile): List<VirtualFile> {
         // This method is now deprecated in favor of AGPPathResolver
         // Kept for backward compatibility
         return emptyList()
     }
     
+    @Suppress("UNUSED_PARAMETER")
     private fun findMergedResourceDirectories(dir: VirtualFile, result: MutableList<VirtualFile>) {
         // This method is now deprecated in favor of AGPPathResolver
         // Kept for backward compatibility
@@ -286,6 +284,7 @@ class CustomResourceStrategy : ResourceManagementStrategy, Disposable {
         }
     }
     
+    @Suppress("UNUSED_PARAMETER")
     private fun parseArchive(file: VirtualFile, colors: MutableMap<String, String>) {
         // Archive parsing handled by existing logic
         // This is a placeholder for AAR/JAR resource extraction

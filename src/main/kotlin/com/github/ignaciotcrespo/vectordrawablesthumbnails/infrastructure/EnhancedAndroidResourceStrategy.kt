@@ -8,6 +8,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.*
+import com.intellij.util.messages.MessageBusConnection
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 
@@ -22,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap
 class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     // Instance variables for proper resource management
-    private val vfsListeners = ConcurrentHashMap<Project, com.intellij.openapi.vfs.VirtualFileListener>()
+    private val vfsListeners = ConcurrentHashMap<Project, MessageBusConnection>()
     private val androidListeners = ConcurrentHashMap<Project, Any>()
     
     companion object {
@@ -134,33 +137,31 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
             // Remove any existing listeners first
             removeChangeListeners(project)
             
-            // Set up VFS listeners for resource directories
-            val vfsListener = object : com.intellij.openapi.vfs.VirtualFileListener {
-                override fun fileCreated(event: com.intellij.openapi.vfs.VirtualFileEvent) {
-                    if (isResourceFile(event.file)) {
-                        invalidateCache(project)
-                        onChange()
-                    }
-                }
-                
-                override fun fileDeleted(event: com.intellij.openapi.vfs.VirtualFileEvent) {
-                    if (isResourceFile(event.file)) {
-                        invalidateCache(project)
-                        onChange()
-                    }
-                }
-                
-                override fun contentsChanged(event: com.intellij.openapi.vfs.VirtualFileEvent) {
-                    if (isResourceFile(event.file)) {
-                        invalidateCache(project)
-                        onChange()
-                    }
-                }
-            }
+            // Set up modern file listeners using message bus
+            val connection = project.messageBus.connect()
             
-            // Store the listener for proper cleanup
-            vfsListeners[project] = vfsListener
-            VirtualFileManager.getInstance().addVirtualFileListener(vfsListener)
+            connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+                override fun after(events: MutableList<out VFileEvent>) {
+                    val hasResourceChanges = events.any { event ->
+                        val file = when (event) {
+                            is VFileCreateEvent -> event.file
+                            is VFileDeleteEvent -> event.file
+                            is VFileContentChangeEvent -> event.file
+                            is VFileMoveEvent -> event.file
+                            else -> null
+                        }
+                        file != null && isResourceFile(file)
+                    }
+                    
+                    if (hasResourceChanges) {
+                        invalidateCache(project)
+                        onChange()
+                    }
+                }
+            })
+            
+            // Store the connection for proper cleanup
+            vfsListeners[project] = connection
             
             // Also try to hook into Android's resource notification system
             setupAndroidResourceListeners(project, onChange)
@@ -172,9 +173,9 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     override fun dispose() {
         // Clean up all listeners
-        vfsListeners.forEach { (project, listener) ->
+        vfsListeners.forEach { (_, connection) ->
             try {
-                VirtualFileManager.getInstance().removeVirtualFileListener(listener)
+                connection.disconnect()
             } catch (e: Exception) {
                 LOG.debug("Error removing VFS listener", e)
             }
@@ -197,9 +198,9 @@ class EnhancedAndroidResourceStrategy : ResourceManagementStrategy {
     
     private fun removeChangeListeners(project: Project) {
         // Remove VFS listener if exists
-        vfsListeners[project]?.let { listener ->
+        vfsListeners[project]?.let { connection ->
             try {
-                VirtualFileManager.getInstance().removeVirtualFileListener(listener)
+                connection.disconnect()
             } catch (e: Exception) {
                 LOG.debug("Error removing VFS listener", e)
             }
