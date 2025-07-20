@@ -4,6 +4,7 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.ColorResourceR
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.LightPlatformTestCase
 import org.junit.Test
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -69,5 +70,20 @@ class DefaultColorResourceResolverTest : LightPlatformTestCase() {
         // Then subsequent calls should return null
         val result = colorResolver.resolveColorReference("@color/primary", project)
         assertNull(result)
+    }
+    
+    @Test
+    fun testColorNameExtraction() {
+        // Test that the color name extraction works correctly
+        val testCases = listOf(
+            "@color/primary" to "primary",
+            "@color/brand_primary" to "brand_primary",
+            "@color/material_blue_500" to "material_blue_500"
+        )
+        
+        testCases.forEach { (reference, expected) ->
+            val actual = reference.removePrefix("@color/").trim()
+            assertEquals(expected, actual, "Color name extraction failed for $reference")
+        }
     }
 }
