@@ -7,6 +7,7 @@ import org.junit.Test
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertNotNull
 
 class DefaultColorResourceResolverTest : LightPlatformTestCase() {
     
@@ -85,5 +86,31 @@ class DefaultColorResourceResolverTest : LightPlatformTestCase() {
             val actual = reference.removePrefix("@color/").trim()
             assertEquals(expected, actual, "Color name extraction failed for $reference")
         }
+    }
+    
+    @Test
+    fun testGetAllColorResources() {
+        // Given a project
+        val project = getProject()
+        
+        // When getting all color resources
+        val allColors = colorResolver.getAllColorResources(project)
+        
+        // Then it should return a map (empty in test environment)
+        assertNotNull(allColors)
+    }
+    
+    @Test
+    fun testBuildColorCacheHandlesExceptions() {
+        // Given a project
+        val project = getProject()
+        
+        // When building color cache multiple times
+        // Then it should not throw exceptions
+        colorResolver.buildColorCache(project)
+        colorResolver.buildColorCache(project) // Should handle existing cache
+        
+        // Verify cache can be cleared
+        colorResolver.clearCache()
     }
 }
