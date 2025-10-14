@@ -26,8 +26,12 @@ class DefaultVectorRepository(
     private val vectors = CopyOnWriteArrayList<VectorItem>()
     private val vectorsMap = ConcurrentHashMap<String, VectorItem>()
     
-    override fun loadVectors(project: Project): Observable<VectorItem> {
-        return fileSearcher.searchVectorFiles(project)
+    override fun loadVectors(
+        project: Project,
+        includeVectorDrawable: Boolean,
+        includeSvg: Boolean
+    ): Observable<VectorItem> {
+        return fileSearcher.searchVectorFiles(project, includeVectorDrawable, includeSvg)
             .subscribeOn(Schedulers.io())
             .observeOn(Schedulers.newThread())
             .flatMap { validFile -> parser.parseVectorFile(validFile) }

@@ -9,5 +9,9 @@ import io.reactivex.Observable
  * Follows the Single Responsibility Principle by focusing only on file searching.
  */
 interface VectorFileSearcher {
-    fun searchVectorFiles(project: Project): Observable<ValidFile>
+    fun searchVectorFiles(
+        project: Project,
+        includeVectorDrawable: Boolean = true,
+        includeSvg: Boolean = false
+    ): Observable<ValidFile>
 } 

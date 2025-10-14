@@ -20,12 +20,24 @@ import java.io.File
  */
 class DefaultVectorFileSearcher : VectorFileSearcher {
     
-    override fun searchVectorFiles(project: Project): Observable<ValidFile> {
+    override fun searchVectorFiles(
+        project: Project,
+        includeVectorDrawable: Boolean,
+        includeSvg: Boolean
+    ): Observable<ValidFile> {
         return Observable.create { emitter: ObservableEmitter<ValidFile> ->
             try {
                 val progressIndicator = ProgressManager.getInstance().progressIndicator
-                progressIndicator?.text = "Scanning for vector drawable files..."
-                
+                val searchType = buildString {
+                    val types = mutableListOf<String>()
+                    if (includeVectorDrawable) types.add("vector drawable")
+                    if (includeSvg) types.add("SVG")
+                    append("Scanning for ")
+                    append(types.joinToString(" and "))
+                    append(" files...")
+                }
+                progressIndicator?.text = searchType
+
                 val modules = ModuleManager.getInstance(project).modules
                 if (modules.isNotEmpty()) {
                     val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
@@ -36,7 +48,15 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                     val projectRootFolder = modules[0].project.basePath
                     if (projectRootFolder != null) {
                         val file1 = File(projectRootFolder)
-                        searchFiles(emitter, file1, projectRootFolder, allExcludedRoots, progressIndicator)
+                        searchFiles(
+                            emitter,
+                            file1,
+                            projectRootFolder,
+                            allExcludedRoots,
+                            progressIndicator,
+                            includeVectorDrawable,
+                            includeSvg
+                        )
                     }
                 }
             } finally {
@@ -50,19 +70,21 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
         folder: File,
         projectRootFolder: String,
         excludedRoots: List<VirtualFile>,
-        progressIndicator: ProgressIndicator? = null
+        progressIndicator: ProgressIndicator? = null,
+        includeVectorDrawable: Boolean = true,
+        includeSvg: Boolean = false
     ) {
         // Check for cancellation
         progressIndicator?.checkCanceled()
-        
+
         val files = folder.listFiles()
         if (files != null) {
             progressIndicator?.text2 = "Scanning: ${folder.name}"
-            
+
             for (f in files) {
                 // Check for cancellation frequently
                 progressIndicator?.checkCanceled()
-                
+
                 if (f.isDirectory) {
                     if (shouldSkipDirectory(f)) {
                         continue
@@ -76,10 +98,23 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                         }
                     }
                     if (!isExcluded) {
-                        searchFiles(emitter, f, projectRootFolder, excludedRoots, progressIndicator)
+                        searchFiles(
+                            emitter,
+                            f,
+                            projectRootFolder,
+                            excludedRoots,
+                            progressIndicator,
+                            includeVectorDrawable,
+                            includeSvg
+                        )
                     }
-                } else if (f.toString().endsWith(".xml")) {
-                    emitter.onNext(ValidFile(f, projectRootFolder))
+                } else {
+                    val fileName = f.toString()
+                    val isXml = includeVectorDrawable && fileName.endsWith(".xml")
+                    val isSvg = includeSvg && fileName.endsWith(".svg")
+                    if (isXml || isSvg) {
+                        emitter.onNext(ValidFile(f, projectRootFolder))
+                    }
                 }
             }
         }

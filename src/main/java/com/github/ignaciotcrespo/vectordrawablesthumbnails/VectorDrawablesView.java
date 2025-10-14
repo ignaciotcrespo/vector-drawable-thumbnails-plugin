@@ -32,6 +32,8 @@ public class VectorDrawablesView {
     private JButton btnPresetOptimizable;
     private JLabel labelResultCount;
     private com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.ColorFilterPanel colorFilterPanel;
+    private JCheckBox checkIncludeVectorDrawable;
+    private JCheckBox checkIncludeSvg;
 
     public VectorDrawablesView() {
 //        System.out.println("VectorDrawablesView: Constructor called");
@@ -155,6 +157,14 @@ public class VectorDrawablesView {
         return colorFilterPanel;
     }
 
+    public JCheckBox getCheckIncludeVectorDrawable() {
+        return checkIncludeVectorDrawable;
+    }
+
+    public JCheckBox getCheckIncludeSvg() {
+        return checkIncludeSvg;
+    }
+
     private void createUIComponents() {
         panelMain = new JPanel();
         panelMain.setLayout(new BorderLayout());
@@ -258,16 +268,33 @@ public class VectorDrawablesView {
         clearButton = new JButton("Clear");
         panel.add(clearButton, gbc);
         
+        // File type checkboxes
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 3;
+        JPanel fileTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        fileTypePanel.add(new JLabel("Include:"));
+
+        checkIncludeVectorDrawable = new JCheckBox("Vector Drawables");
+        checkIncludeVectorDrawable.setSelected(true); // Enabled by default
+        checkIncludeVectorDrawable.setToolTipText("Include Android Vector Drawable XML files");
+        fileTypePanel.add(checkIncludeVectorDrawable);
+
+        checkIncludeSvg = new JCheckBox("SVG files");
+        checkIncludeSvg.setSelected(false); // Disabled by default
+        checkIncludeSvg.setToolTipText("Include SVG files");
+        fileTypePanel.add(checkIncludeSvg);
+
+        panel.add(fileTypePanel, gbc);
+
         // Sort row
-        gbc.gridx = 0; gbc.gridy = 1;
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1;
         panel.add(new JLabel("Sort By:"), gbc);
-        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0; gbc.gridwidth = 1;
         comboSort = new JComboBox<>(new String[]{
-            "By Name", "By Width", "By Height", "By Width x Height", 
+            "By Name", "By Width", "By Height", "By Width x Height",
             "By File Size", "By Complexity", "By Usage Count", "By Tags"
         });
         panel.add(comboSort, gbc);
-        gbc.gridx = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+        gbc.gridx = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0; gbc.gridwidth = 1;
         comboSortDirection = new JComboBox<>(new String[]{"Asc", "Desc"});
         panel.add(comboSortDirection, gbc);
         

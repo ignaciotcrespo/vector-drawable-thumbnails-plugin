@@ -6,6 +6,13 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
+import org.apache.batik.transcoder.TranscoderInput
+import org.apache.batik.transcoder.TranscoderOutput
+import org.apache.batik.transcoder.image.ImageTranscoder
+import org.apache.batik.transcoder.image.PNGTranscoder
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import org.w3c.dom.Document
 import org.xml.sax.InputSource
 import java.awt.image.BufferedImage
@@ -24,7 +31,12 @@ class DefaultVectorParser : VectorParser {
         return Observable.create<VectorItem> { emitter ->
             try {
 //                println("Parsing vector file: ${validFile.file.name}")
-                val vectorItem = parseVector(validFile)
+                val vectorItem = if (validFile.file.name.endsWith(".svg")) {
+                    parseSvg(validFile)
+                } else {
+                    parseVector(validFile)
+                }
+
                 if (vectorItem != null) {
 //                    println("Successfully parsed vector: ${vectorItem.name}")
                     emitter.onNext(vectorItem)
@@ -102,6 +114,92 @@ class DefaultVectorParser : VectorParser {
         } catch (e: Exception) {
             println("Error generating preview image: ${e.message}")
             null
+        }
+    }
+
+    private fun parseSvg(validFile: ValidFile): VectorItem? {
+        return try {
+            val file = validFile.file
+            val bitmap = renderSvgToImage(file.absolutePath) ?: return null
+
+            // Try to extract viewBox or width/height from SVG
+            val (viewportW, viewportH) = extractSvgDimensions(file)
+
+            VectorItem(
+                name = file.name,
+                image = bitmap,
+                validFile = validFile,
+                viewportW = viewportW,
+                viewportH = viewportH,
+                fileSize = file.length()
+            )
+        } catch (e: Exception) {
+            println("Error parsing SVG: ${e.message}")
+            null
+        }
+    }
+
+    private fun renderSvgToImage(svgPath: String): BufferedImage? {
+        return try {
+            val transcoder = PNGTranscoder()
+
+            // Set the transcoding hints for size
+            transcoder.addTranscodingHint(
+                ImageTranscoder.KEY_WIDTH,
+                50f
+            )
+            transcoder.addTranscodingHint(
+                ImageTranscoder.KEY_HEIGHT,
+                50f
+            )
+
+            val input = TranscoderInput(FileInputStream(svgPath))
+            val outputStream = ByteArrayOutputStream()
+            val output = TranscoderOutput(outputStream)
+
+            transcoder.transcode(input, output)
+            outputStream.flush()
+
+            val byteArray = outputStream.toByteArray()
+            ImageIO.read(ByteArrayInputStream(byteArray))
+        } catch (e: Exception) {
+            println("Error rendering SVG to image: ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun extractSvgDimensions(file: java.io.File): Pair<Int, Int> {
+        return try {
+            val content = file.readText()
+            val doc = parseXmlDocument(content, StringBuilder()) ?: return Pair(0, 0)
+            val root = doc.documentElement
+
+            // Try to get width and height attributes
+            val widthStr = root.getAttribute("width")
+            val heightStr = root.getAttribute("height")
+
+            if (widthStr.isNotEmpty() && heightStr.isNotEmpty()) {
+                val width = widthStr.replace(Regex("[^0-9.]"), "").toDoubleOrNull()?.toInt() ?: 0
+                val height = heightStr.replace(Regex("[^0-9.]"), "").toDoubleOrNull()?.toInt() ?: 0
+                return Pair(width, height)
+            }
+
+            // Try to get viewBox attribute
+            val viewBox = root.getAttribute("viewBox")
+            if (viewBox.isNotEmpty()) {
+                val parts = viewBox.split(Regex("\\s+"))
+                if (parts.size == 4) {
+                    val width = parts[2].toDoubleOrNull()?.toInt() ?: 0
+                    val height = parts[3].toDoubleOrNull()?.toInt() ?: 0
+                    return Pair(width, height)
+                }
+            }
+
+            Pair(0, 0)
+        } catch (e: Exception) {
+            println("Error extracting SVG dimensions: ${e.message}")
+            Pair(0, 0)
         }
     }
 } 

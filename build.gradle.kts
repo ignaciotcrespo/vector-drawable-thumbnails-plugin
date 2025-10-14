@@ -37,6 +37,8 @@ repositories {
 dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("com.android.tools:sdk-common:31.2.2")
+    implementation("org.apache.xmlgraphics:batik-transcoder:1.17")
+    implementation("org.apache.xmlgraphics:batik-codec:1.17")
 
     testImplementation(libs.junit)
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")

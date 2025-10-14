@@ -11,7 +11,11 @@ import io.reactivex.Observable
  * Follows the Dependency Inversion Principle by providing an abstraction for data operations.
  */
 interface VectorRepository {
-    fun loadVectors(project: Project): Observable<VectorItem>
+    fun loadVectors(
+        project: Project,
+        includeVectorDrawable: Boolean = true,
+        includeSvg: Boolean = false
+    ): Observable<VectorItem>
     fun getVectors(): List<VectorItem>
     fun clearVectors()
     fun addVector(vectorItem: VectorItem)

@@ -31,12 +31,16 @@ class VectorService(
     
     val stateObservable: Observable<VectorServiceState> = stateSubject
     
-    fun loadVectors(project: Project): Observable<VectorItem> {
+    fun loadVectors(
+        project: Project,
+        includeVectorDrawable: Boolean = true,
+        includeSvg: Boolean = false
+    ): Observable<VectorItem> {
         stateSubject.onNext(VectorServiceState.Loading)
         repository.clearVectors()
         clearCache() // Clear cache when loading new vectors
-        
-        return repository.loadVectors(project)
+
+        return repository.loadVectors(project, includeVectorDrawable, includeSvg)
             .doOnComplete { stateSubject.onNext(VectorServiceState.Loaded) }
             .doOnError { stateSubject.onNext(VectorServiceState.Error(it)) }
     }

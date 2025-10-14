@@ -107,6 +107,7 @@ class VectorUIController(
         setupAdvancedFilters()
         setupPresetButtons()
         setupColorFilter()
+        setupFileTypeCheckboxes()
     }
     
     private fun setupDonateButton() {
@@ -246,9 +247,21 @@ class VectorUIController(
             currentSelectedColors = selectedColors
             updateAdvancedFilter()
         }
-        
+
         // Initialize with empty color palette
         view.colorFilterPanel?.updateColors(emptyMap())
+    }
+
+    private fun setupFileTypeCheckboxes() {
+        view.checkIncludeVectorDrawable?.addActionListener {
+            // Reload vectors when Vector Drawable checkbox is toggled
+            loadVectors()
+        }
+
+        view.checkIncludeSvg?.addActionListener {
+            // Reload vectors when SVG checkbox is toggled
+            loadVectors()
+        }
     }
     
     private fun updateAdvancedFilter() {
@@ -499,9 +512,13 @@ class VectorUIController(
         Thread {
             try {
                 println("VectorUIController: Ultra-fast loading - no analytics, no blocking operations")
-                
+
+                // Check which file types should be included
+                val includeVectorDrawable = view.checkIncludeVectorDrawable?.isSelected ?: true
+                val includeSvg = view.checkIncludeSvg?.isSelected ?: false
+
                 // Load vectors with minimal processing
-                val loadingDisposable = vectorService.loadVectors(project)
+                val loadingDisposable = vectorService.loadVectors(project, includeVectorDrawable, includeSvg)
                     .subscribeOn(Schedulers.io())
                     .observeOn(Schedulers.computation())
                     .subscribe(
