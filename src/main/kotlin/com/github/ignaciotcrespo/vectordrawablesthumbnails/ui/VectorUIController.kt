@@ -633,6 +633,8 @@ class VectorUIController(
                 SwingUtilities.invokeLater {
                     view.btnRefresh.text = "Refresh"
                     println("VectorUIController: Background analytics completed (usage analysis skipped)")
+                    // Update color palette now that analytics (including colors) have been extracted
+                    updateColorPalette()
                 }
                 
             } catch (e: Exception) {
