@@ -95,7 +95,11 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = providers.gradleProperty("pluginUntilBuild")
+            // Only set untilBuild if it has a value (empty means no upper limit)
+            val untilBuildValue = providers.gradleProperty("pluginUntilBuild")
+            if (untilBuildValue.orNull?.isNotEmpty() == true) {
+                untilBuild = untilBuildValue
+            }
         }
     }
 
