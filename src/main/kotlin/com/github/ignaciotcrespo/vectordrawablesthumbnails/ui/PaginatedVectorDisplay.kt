@@ -92,7 +92,7 @@ class PaginatedVectorDisplay(
     }
     
     private fun setupVectorPanel() {
-        vectorPanel.background = Color.WHITE
+        // Don't set background - inherit from parent to use theme colors
         // Layout will be set dynamically based on content
         // Ensure the panel can expand as needed for proper scrolling
         vectorPanel.preferredSize = null
@@ -168,8 +168,8 @@ class PaginatedVectorDisplay(
     
     private fun createViewportLazyPlaceholder(item: VectorItem): JPanel {
         val placeholder = JPanel(BorderLayout())
-        placeholder.background = Color.WHITE
-        placeholder.border = BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1)
+        // Don't set background - inherit from parent to use theme colors
+        placeholder.border = BorderFactory.createLineBorder(com.intellij.ui.JBColor.border(), 1)
         placeholder.preferredSize = Dimension(160, 180)
         placeholder.minimumSize = Dimension(160, 180)
         placeholder.maximumSize = Dimension(160, 180)
@@ -178,11 +178,11 @@ class PaginatedVectorDisplay(
         val nameLabel = JLabel(item.name, SwingConstants.CENTER)
         nameLabel.font = nameLabel.font.deriveFont(Font.BOLD, 10f)
         placeholder.add(nameLabel, BorderLayout.CENTER)
-        
+
         // Add a simple loading indicator
         val loadingLabel = JLabel("Loading...", SwingConstants.CENTER)
         loadingLabel.font = loadingLabel.font.deriveFont(9f)
-        loadingLabel.foreground = Color.GRAY
+        // Don't set foreground - inherit theme colors
         placeholder.add(loadingLabel, BorderLayout.SOUTH)
         
         // Store item reference for viewport loading
@@ -203,13 +203,11 @@ class PaginatedVectorDisplay(
             }
             
             override fun mouseEntered(e: java.awt.event.MouseEvent) {
-                placeholder.background = Color(240, 240, 240)
-                placeholder.repaint()
+                // Let the UI use default hover behavior
             }
-            
+
             override fun mouseExited(e: java.awt.event.MouseEvent) {
-                placeholder.background = Color.WHITE
-                placeholder.repaint()
+                // Let the UI use default hover behavior
             }
         })
         
@@ -291,7 +289,7 @@ class PaginatedVectorDisplay(
             val loadingLabel = placeholder.components.find { it is JLabel && it.text == "Loading..." } as? JLabel
             if (loadingLabel != null) {
                 loadingLabel.text = if (isPriority) "Priority loading..." else "Loading..."
-                loadingLabel.foreground = if (isPriority) Color.BLUE else Color.GRAY
+                // Don't set foreground - inherit theme colors
             }
         }
         
@@ -331,7 +329,7 @@ class PaginatedVectorDisplay(
     private fun showErrorPlaceholder(placeholder: JPanel, errorMessage: String) {
         placeholder.removeAll()
         val errorLabel = JLabel(errorMessage, SwingConstants.CENTER)
-        errorLabel.foreground = Color.RED
+        errorLabel.foreground = com.intellij.ui.JBColor.RED
         errorLabel.font = errorLabel.font.deriveFont(9f)
         placeholder.add(errorLabel, BorderLayout.CENTER)
         placeholder.putClientProperty("isLoaded", true) // Mark as "loaded" to prevent retries
