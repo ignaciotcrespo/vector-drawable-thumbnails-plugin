@@ -2,21 +2,11 @@
     <id>ignaciotcrespo.github.com.vector-drawable-thumbnails</id>
     <name>Vector Thumbnails</name>
     <vendor email="itcrespo@gmail.com" url="https://github.com/ignaciotcrespo">Ignacio Tomas Crespo</vendor>
-    <version>2.2.1</version>
+    <version>2.2.2</version>
 
     <!-- Enhanced compatibility with all JetBrains products -->
     <!-- Base platform dependency - works with all JetBrains IDEs -->
     <depends>com.intellij.modules.platform</depends>
-    
-    <!-- Optional dependencies for enhanced functionality in specific IDEs -->
-    <!-- Android Studio / IntelliJ IDEA Ultimate with Android plugin -->
-    <depends optional="true" config-file="android-support.xml">org.jetbrains.android</depends>
-    
-    <!-- Java support for IntelliJ IDEA -->
-    <depends optional="true" config-file="java-support.xml">com.intellij.modules.java</depends>
-    
-    <!-- Language support for broader compatibility -->
-    <depends optional="true" config-file="lang-support.xml">com.intellij.modules.lang</depends>
 
     <description><![CDATA[
     <h2>Vector Thumbnails - Android Vector Drawables & SVG Support</h2>

@@ -95,11 +95,7 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            // Only set untilBuild if it has a value (empty means no upper limit)
-            val untilBuildValue = providers.gradleProperty("pluginUntilBuild")
-            if (untilBuildValue.orNull?.isNotEmpty() == true) {
-                untilBuild = untilBuildValue
-            }
+            // Don't set untilBuild to support all future IDE versions
         }
     }
 
@@ -152,6 +148,13 @@ kover {
 tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
+    }
+
+    // Explicitly configure patchPluginXml to support all future IDE versions
+    patchPluginXml {
+        sinceBuild = providers.gradleProperty("pluginSinceBuild")
+        // Explicitly set untilBuild to null for unlimited forward compatibility
+        untilBuild = provider { null }
     }
 
     publishPlugin {
