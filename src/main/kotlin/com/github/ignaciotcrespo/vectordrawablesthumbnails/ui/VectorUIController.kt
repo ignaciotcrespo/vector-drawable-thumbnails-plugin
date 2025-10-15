@@ -6,6 +6,7 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.application.VectorSer
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.SortCriteria
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.SortDirection
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorAnalyticsService
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorRepository
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.Utils
 import com.intellij.openapi.project.Project
@@ -36,6 +37,8 @@ class VectorUIController(
     private val view: VectorDrawablesView,
     private val vectorService: VectorService,
     private val analyticsService: VectorAnalyticsService,
+    private val vectorDrawableRepository: VectorRepository,
+    private val svgRepository: VectorRepository,
     private val project: Project
 ) {
     
@@ -513,12 +516,18 @@ class VectorUIController(
             try {
                 println("VectorUIController: Ultra-fast loading - no analytics, no blocking operations")
 
-                // Check which file types should be included
-                val includeVectorDrawable = view.checkIncludeVectorDrawable?.isSelected ?: true
-                val includeSvg = view.checkIncludeSvg?.isSelected ?: false
+                // Build list of enabled repositories based on checkboxes
+                val enabledRepositories = buildList {
+                    if (view.checkIncludeVectorDrawable?.isSelected == true) {
+                        add(vectorDrawableRepository)
+                    }
+                    if (view.checkIncludeSvg?.isSelected == true) {
+                        add(svgRepository)
+                    }
+                }
 
-                // Load vectors with minimal processing
-                val loadingDisposable = vectorService.loadVectors(project, includeVectorDrawable, includeSvg)
+                // Load vectors from all enabled repositories
+                val loadingDisposable = vectorService.loadVectors(project, enabledRepositories)
                     .subscribeOn(Schedulers.io())
                     .observeOn(Schedulers.computation())
                     .subscribe(

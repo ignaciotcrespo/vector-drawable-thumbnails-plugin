@@ -23,6 +23,8 @@ class VectorDrawablesToolWindowFactory : ToolWindowFactory {
             view = view,
             vectorService = dependencyContainer.vectorService,
             analyticsService = dependencyContainer.analyticsService,
+            vectorDrawableRepository = dependencyContainer.vectorDrawableRepository,
+            svgRepository = dependencyContainer.svgRepository,
             project = project
         )
         

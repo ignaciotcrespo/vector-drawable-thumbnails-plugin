@@ -1,6 +1,7 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorFileSearcher
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.FileType
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.ProgressIndicator
@@ -22,19 +23,16 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
     
     override fun searchVectorFiles(
         project: Project,
-        includeVectorDrawable: Boolean,
-        includeSvg: Boolean
+        fileTypes: Set<FileType>
     ): Observable<ValidFile> {
         return Observable.create { emitter: ObservableEmitter<ValidFile> ->
             try {
                 val progressIndicator = ProgressManager.getInstance().progressIndicator
-                val searchType = buildString {
-                    val types = mutableListOf<String>()
-                    if (includeVectorDrawable) types.add("vector drawable")
-                    if (includeSvg) types.add("SVG")
-                    append("Scanning for ")
-                    append(types.joinToString(" and "))
-                    append(" files...")
+                val searchType = if (fileTypes.isEmpty()) {
+                    "Scanning for files..."
+                } else {
+                    val typeNames = fileTypes.joinToString(" and ") { it.displayName }
+                    "Scanning for $typeNames files..."
                 }
                 progressIndicator?.text = searchType
 
@@ -54,8 +52,7 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                             projectRootFolder,
                             allExcludedRoots,
                             progressIndicator,
-                            includeVectorDrawable,
-                            includeSvg
+                            fileTypes
                         )
                     }
                 }
@@ -71,8 +68,7 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
         projectRootFolder: String,
         excludedRoots: List<VirtualFile>,
         progressIndicator: ProgressIndicator? = null,
-        includeVectorDrawable: Boolean = true,
-        includeSvg: Boolean = false
+        fileTypes: Set<FileType>
     ) {
         // Check for cancellation
         progressIndicator?.checkCanceled()
@@ -104,15 +100,12 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                             projectRootFolder,
                             excludedRoots,
                             progressIndicator,
-                            includeVectorDrawable,
-                            includeSvg
+                            fileTypes
                         )
                     }
                 } else {
-                    val fileName = f.toString()
-                    val isXml = includeVectorDrawable && fileName.endsWith(".xml")
-                    val isSvg = includeSvg && fileName.endsWith(".svg")
-                    if (isXml || isSvg) {
+                    // Check if file matches any of the requested file types
+                    if (fileTypes.any { it.matches(f.name) }) {
                         emitter.onNext(ValidFile(f, projectRootFolder))
                     }
                 }
