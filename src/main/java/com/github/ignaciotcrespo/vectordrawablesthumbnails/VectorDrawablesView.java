@@ -174,10 +174,16 @@ public class VectorDrawablesView {
         
         // Create buttons panel
         JPanel buttonPanel = createButtonPanel();
-        
+
+        // Create file type selection panel
+        JPanel fileTypePanel = createFileTypeSelectionPanel();
+
         // Create north panel with better organization
         JPanel northPanel = new JPanel(new BorderLayout());
-        northPanel.add(buttonPanel, BorderLayout.NORTH);
+        JPanel topSection = new JPanel(new BorderLayout());
+        topSection.add(buttonPanel, BorderLayout.NORTH);
+        topSection.add(fileTypePanel, BorderLayout.CENTER);
+        northPanel.add(topSection, BorderLayout.NORTH);
         northPanel.add(panelFilter, BorderLayout.CENTER);
         
         panelMain.add(northPanel, BorderLayout.NORTH);
@@ -197,7 +203,7 @@ public class VectorDrawablesView {
     
     private JPanel createButtonPanel() {
         JPanel buttonPanel = new JPanel(new BorderLayout());
-        
+
         // Left side - refresh and result count
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         btnRefresh = new JButton("🔄 Refresh");
@@ -206,15 +212,37 @@ public class VectorDrawablesView {
         leftPanel.add(btnRefresh);
         leftPanel.add(Box.createHorizontalStrut(10));
         leftPanel.add(labelResultCount);
-        
+
         // Right side - donate button
         btnDonate = new JButton("♡ Support");
         btnDonate.setToolTipText("Support the development of this plugin");
-        
+
         buttonPanel.add(leftPanel, BorderLayout.WEST);
         buttonPanel.add(btnDonate, BorderLayout.EAST);
-        
+
         return buttonPanel;
+    }
+
+    private JPanel createFileTypeSelectionPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("📁 File Types"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+
+        checkIncludeVectorDrawable = new JCheckBox("Vector Drawables (.xml)");
+        checkIncludeVectorDrawable.setSelected(true); // Enabled by default
+        checkIncludeVectorDrawable.setToolTipText("Include Android Vector Drawable XML files");
+
+        checkIncludeSvg = new JCheckBox("SVG files (.svg)");
+        checkIncludeSvg.setSelected(false); // Disabled by default
+        checkIncludeSvg.setToolTipText("Include SVG files");
+
+        panel.add(checkIncludeVectorDrawable);
+        panel.add(Box.createHorizontalStrut(15));
+        panel.add(checkIncludeSvg);
+
+        return panel;
     }
     
     private JPanel createEnhancedFilterPanel() {
@@ -267,26 +295,9 @@ public class VectorDrawablesView {
         gbc.gridx = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
         clearButton = new JButton("Clear");
         panel.add(clearButton, gbc);
-        
-        // File type checkboxes
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 3;
-        JPanel fileTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        fileTypePanel.add(new JLabel("Include:"));
 
-        checkIncludeVectorDrawable = new JCheckBox("Vector Drawables");
-        checkIncludeVectorDrawable.setSelected(true); // Enabled by default
-        checkIncludeVectorDrawable.setToolTipText("Include Android Vector Drawable XML files");
-        fileTypePanel.add(checkIncludeVectorDrawable);
-
-        checkIncludeSvg = new JCheckBox("SVG files");
-        checkIncludeSvg.setSelected(false); // Disabled by default
-        checkIncludeSvg.setToolTipText("Include SVG files");
-        fileTypePanel.add(checkIncludeSvg);
-
-        panel.add(fileTypePanel, gbc);
-
-        // Sort row
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1;
+        // Sort row (file type checkboxes moved to top panel)
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1;
         panel.add(new JLabel("Sort By:"), gbc);
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0; gbc.gridwidth = 1;
         comboSort = new JComboBox<>(new String[]{
