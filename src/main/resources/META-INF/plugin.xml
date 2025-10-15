@@ -2,7 +2,7 @@
     <id>ignaciotcrespo.github.com.vector-drawable-thumbnails</id>
     <name>Vector Drawable Thumbnails</name>
     <vendor email="itcrespo@gmail.com" url="https://github.com/ignaciotcrespo">Ignacio Tomas Crespo</vendor>
-    <version>1.3.0</version>
+    <version>2.2.1</version>
 
     <!-- Enhanced compatibility with all JetBrains products -->
     <!-- Base platform dependency - works with all JetBrains IDEs -->
@@ -20,16 +20,18 @@
 
     <description><![CDATA[
     <h2>Vector Drawable Thumbnails Plugin</h2>
-    
-    <p>A professional plugin that displays thumbnail previews of Android Vector Drawable files in a convenient tool window.</p>
-    
+
+    <p>A professional plugin that displays thumbnail previews of Android Vector Drawable files and SVG files in a convenient tool window.</p>
+
     <h3>Features:</h3>
     <ul>
+        <li><strong>SVG Support:</strong> Now supports both Android Vector Drawables (.xml) and SVG files (.svg)</li>
         <li><strong>Universal Compatibility:</strong> Works with all JetBrains IDEs (IntelliJ IDEA, Android Studio, WebStorm, PyCharm, etc.)</li>
-        <li><strong>Real-time Thumbnails:</strong> Automatically generates and displays vector drawable previews</li>
-        <li><strong>Smart Filtering:</strong> Filter vectors by name with real-time search</li>
-        <li><strong>Flexible Sorting:</strong> Sort by name, size, or modification date</li>
-        <li><strong>Professional Architecture:</strong> Built with SOLID principles for maintainability and extensibility</li>
+        <li><strong>Real-time Thumbnails:</strong> Automatically generates and displays vector previews</li>
+        <li><strong>Advanced Filtering:</strong> Filter by name, colors, complexity, file size, and more</li>
+        <li><strong>Flexible Sorting:</strong> Sort by name, size, complexity, or modification date</li>
+        <li><strong>Color Palette:</strong> Extract and filter by colors used in your vectors</li>
+        <li><strong>Dark Mode Support:</strong> Seamlessly adapts to your IDE theme</li>
         <li><strong>Performance Optimized:</strong> Efficient caching and background processing</li>
     </ul>
     
@@ -52,20 +54,27 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>Version 2.2.1 - SVG Support & Dark Mode</h3>
+    <ul>
+        <li><strong>NEW: SVG File Support:</strong> Now displays thumbnails for both Android Vector Drawables (.xml) and SVG files (.svg)</li>
+        <li><strong>Dark Mode Support:</strong> UI properly adapts to light and dark IDE themes</li>
+        <li><strong>Color Filter Enhancements:</strong> Extract and filter vectors by colors from both VD and SVG files</li>
+        <li><strong>Improved Color Extraction:</strong> Enhanced color detection for SVG files including inline styles</li>
+        <li><strong>File Type Filtering:</strong> Toggle between showing Vector Drawables, SVG files, or both</li>
+        <li><strong>WebStorm Compatibility:</strong> Enhanced support for WebStorm and other non-Java IDEs</li>
+    </ul>
+
     <h3>Version 1.3.0 - Maximum JetBrains Compatibility</h3>
     <ul>
         <li><strong>Universal Compatibility:</strong> Enhanced support for all JetBrains IDEs</li>
         <li><strong>SOLID Architecture:</strong> Complete refactoring following SOLID principles</li>
         <li><strong>Performance Improvements:</strong> Optimized for better responsiveness</li>
         <li><strong>Enhanced Filtering:</strong> Improved search and filtering capabilities</li>
-        <li><strong>Professional UI:</strong> Modern and consistent user interface</li>
-        <li><strong>Better Error Handling:</strong> Robust error management and user feedback</li>
-        <li><strong>Extensible Design:</strong> Easy to extend with new features</li>
     </ul>
     ]]></change-notes>
 
-    <!-- Compatibility range covering 80%+ of users -->
-    <idea-version since-build="231" until-build="251.*"/>
+    <!-- Compatibility: supports all JetBrains IDEs from 2023.1 onwards with no upper limit -->
+    <idea-version since-build="231"/>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Tool window with enhanced icon and positioning -->
