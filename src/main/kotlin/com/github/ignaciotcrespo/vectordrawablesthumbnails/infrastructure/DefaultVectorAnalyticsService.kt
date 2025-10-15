@@ -212,30 +212,91 @@ class DefaultVectorAnalyticsService : VectorAnalyticsService {
     private fun extractColors(document: Document?): Set<String> {
         return try {
             val colorSet = mutableSetOf<String>()
-            
-            // Extract fill colors
+
+            // Extract fill colors - support both Android Vector Drawable and SVG formats
             val pathElements = document?.getElementsByTagName("path")
             if (pathElements != null) {
                 for (i in 0 until pathElements.length) {
                     val element = pathElements.item(i)
-                    val fillColor = element.attributes?.getNamedItem("android:fillColor")?.nodeValue
-                    if (fillColor != null && fillColor.startsWith("#")) {
-                        colorSet.add(fillColor.uppercase())
+
+                    // Android Vector Drawable format
+                    val androidFillColor = element.attributes?.getNamedItem("android:fillColor")?.nodeValue
+                    if (androidFillColor != null && androidFillColor.startsWith("#")) {
+                        colorSet.add(androidFillColor.uppercase())
+                    }
+
+                    // SVG format
+                    val svgFillColor = element.attributes?.getNamedItem("fill")?.nodeValue
+                    if (svgFillColor != null && svgFillColor.startsWith("#")) {
+                        colorSet.add(svgFillColor.uppercase())
                     }
                 }
             }
-            
-            // Extract stroke colors
+
+            // Extract stroke colors - support both formats
             if (pathElements != null) {
                 for (i in 0 until pathElements.length) {
                     val element = pathElements.item(i)
-                    val strokeColor = element.attributes?.getNamedItem("android:strokeColor")?.nodeValue
-                    if (strokeColor != null && strokeColor.startsWith("#")) {
-                        colorSet.add(strokeColor.uppercase())
+
+                    // Android Vector Drawable format
+                    val androidStrokeColor = element.attributes?.getNamedItem("android:strokeColor")?.nodeValue
+                    if (androidStrokeColor != null && androidStrokeColor.startsWith("#")) {
+                        colorSet.add(androidStrokeColor.uppercase())
+                    }
+
+                    // SVG format
+                    val svgStrokeColor = element.attributes?.getNamedItem("stroke")?.nodeValue
+                    if (svgStrokeColor != null && svgStrokeColor.startsWith("#")) {
+                        colorSet.add(svgStrokeColor.uppercase())
                     }
                 }
             }
-            
+
+            // Check other SVG elements that can have colors (rect, circle, ellipse, polygon, etc.)
+            val svgElements = listOf("rect", "circle", "ellipse", "polygon", "polyline", "line")
+            svgElements.forEach { tagName ->
+                val elements = document?.getElementsByTagName(tagName)
+                if (elements != null) {
+                    for (i in 0 until elements.length) {
+                        val element = elements.item(i)
+
+                        // Extract fill
+                        val fill = element.attributes?.getNamedItem("fill")?.nodeValue
+                        if (fill != null && fill.startsWith("#")) {
+                            colorSet.add(fill.uppercase())
+                        }
+
+                        // Extract stroke
+                        val stroke = element.attributes?.getNamedItem("stroke")?.nodeValue
+                        if (stroke != null && stroke.startsWith("#")) {
+                            colorSet.add(stroke.uppercase())
+                        }
+                    }
+                }
+            }
+
+            // Check for style attributes (SVG can define colors inline in style)
+            document?.getElementsByTagName("*")?.let { allElements ->
+                for (i in 0 until allElements.length) {
+                    val element = allElements.item(i)
+                    val style = element.attributes?.getNamedItem("style")?.nodeValue
+                    if (style != null) {
+                        // Extract colors from style attribute (e.g., "fill:#FF0000;stroke:#00FF00")
+                        val colorRegex = Regex("#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}")
+                        colorRegex.findAll(style).forEach { match ->
+                            val color = match.value.uppercase()
+                            // Expand 3-digit hex to 6-digit
+                            val expandedColor = if (color.length == 4) {
+                                "#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}"
+                            } else {
+                                color
+                            }
+                            colorSet.add(expandedColor)
+                        }
+                    }
+                }
+            }
+
             if (colorSet.isEmpty()) {
                 setOf("#000000") // Default black if no colors found
             } else {

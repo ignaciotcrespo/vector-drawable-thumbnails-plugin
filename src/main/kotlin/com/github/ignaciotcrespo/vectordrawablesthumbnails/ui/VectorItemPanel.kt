@@ -163,13 +163,16 @@ class VectorItemPanel(
         val mouseListener = object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
 //                println("VectorItemPanel: Mouse clicked on ${vectorItem.name}, clickCount=${e.clickCount}, analytics=${vectorItem.analytics != null}")
-                
+
                 if (e.clickCount == 1) {
 //                    println("VectorItemPanel: Single click - opening file")
                     Utils.openValidFile(project, vectorItem.validFile)
                 } else if (e.clickCount == 2) {
 //                    println("VectorItemPanel: Double click - showing analytics")
-                    showDetailedAnalytics()
+                    // Only show analytics for Vector Drawable files (.xml), not SVG files
+                    if (!vectorItem.validFile.file.name.endsWith(".svg", ignoreCase = true)) {
+                        showDetailedAnalytics()
+                    }
                 }
             }
             

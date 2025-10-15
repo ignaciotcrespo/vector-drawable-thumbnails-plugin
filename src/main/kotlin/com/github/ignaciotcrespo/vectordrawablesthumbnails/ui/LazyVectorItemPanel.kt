@@ -165,8 +165,10 @@ class LazyVectorItemPanel(
                     // Single click - open file
                     com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.Utils.openValidFile(project, vectorItem.validFile)
                 } else if (e.clickCount == 2) {
-                    // Double click - show analytics
-                    showDetailedAnalytics()
+                    // Double click - show analytics (only for Vector Drawable files, not SVG)
+                    if (!vectorItem.validFile.file.name.endsWith(".svg", ignoreCase = true)) {
+                        showDetailedAnalytics()
+                    }
                 }
             }
             
