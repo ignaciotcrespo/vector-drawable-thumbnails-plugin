@@ -37,24 +37,29 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                 progressIndicator?.text = searchType
 
                 val modules = ModuleManager.getInstance(project).modules
+                val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
+
+                // Collect excluded roots from modules if they exist
                 if (modules.isNotEmpty()) {
-                    val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
                     for (module in modules) {
                         val excludedRoots = ModuleRootManager.getInstance(module).excludeRoots
                         allExcludedRoots.addAll(listOf(*excludedRoots))
                     }
-                    val projectRootFolder = modules[0].project.basePath
-                    if (projectRootFolder != null) {
-                        val file1 = File(projectRootFolder)
-                        searchFiles(
-                            emitter,
-                            file1,
-                            projectRootFolder,
-                            allExcludedRoots,
-                            progressIndicator,
-                            fileTypes
-                        )
-                    }
+                }
+
+                // Always search in project base path, even if there are no modules
+                // This ensures compatibility with all JetBrains IDEs (WebStorm, PyCharm, etc.)
+                val projectRootFolder = project.basePath
+                if (projectRootFolder != null) {
+                    val file1 = File(projectRootFolder)
+                    searchFiles(
+                        emitter,
+                        file1,
+                        projectRootFolder,
+                        allExcludedRoots,
+                        progressIndicator,
+                        fileTypes
+                    )
                 }
             } finally {
                 emitter.onComplete()

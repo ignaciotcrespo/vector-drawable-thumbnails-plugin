@@ -65,7 +65,7 @@
     ]]></change-notes>
 
     <!-- Compatibility range covering 80%+ of users -->
-    <idea-version since-build="231" until-build="243.*"/>
+    <idea-version since-build="231" until-build="251.*"/>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Tool window with enhanced icon and positioning -->
