@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>ignaciotcrespo.github.com.vector-drawable-thumbnails</id>
-    <name>Vector Drawable Thumbnails</name>
+    <name>Vector Thumbnails</name>
     <vendor email="itcrespo@gmail.com" url="https://github.com/ignaciotcrespo">Ignacio Tomas Crespo</vendor>
     <version>2.2.1</version>
 
@@ -19,19 +19,25 @@
     <depends optional="true" config-file="lang-support.xml">com.intellij.modules.lang</depends>
 
     <description><![CDATA[
-    <h2>Vector Drawable Thumbnails Plugin</h2>
+    <h2>Vector Thumbnails - Android Vector Drawables & SVG Support</h2>
 
-    <p>A professional plugin that displays thumbnail previews of Android Vector Drawable files and SVG files in a convenient tool window.</p>
+    <p>A professional plugin that displays thumbnail previews of <strong>Android Vector Drawable (.xml)</strong> and <strong>SVG (.svg)</strong> files in a convenient tool window.</p>
 
-    <h3>Features:</h3>
+    <h3>Supported Formats:</h3>
     <ul>
-        <li><strong>SVG Support:</strong> Now supports both Android Vector Drawables (.xml) and SVG files (.svg)</li>
-        <li><strong>Universal Compatibility:</strong> Works with all JetBrains IDEs (IntelliJ IDEA, Android Studio, WebStorm, PyCharm, etc.)</li>
-        <li><strong>Real-time Thumbnails:</strong> Automatically generates and displays vector previews</li>
+        <li>✅ <strong>Android Vector Drawables</strong> - .xml files with vector:path elements</li>
+        <li>✅ <strong>SVG Files</strong> - Standard Scalable Vector Graphics format</li>
+    </ul>
+
+    <h3>Key Features:</h3>
+    <ul>
+        <li><strong>Real-time Thumbnails:</strong> Automatically generates and displays previews for both formats</li>
         <li><strong>Advanced Filtering:</strong> Filter by name, colors, complexity, file size, and more</li>
+        <li><strong>Color Palette:</strong> Extract and filter by colors used in your vectors (both VD and SVG)</li>
+        <li><strong>File Type Toggle:</strong> Show Vector Drawables, SVG files, or both simultaneously</li>
         <li><strong>Flexible Sorting:</strong> Sort by name, size, complexity, or modification date</li>
-        <li><strong>Color Palette:</strong> Extract and filter by colors used in your vectors</li>
-        <li><strong>Dark Mode Support:</strong> Seamlessly adapts to your IDE theme</li>
+        <li><strong>Dark Mode Support:</strong> Seamlessly adapts to your IDE theme (light/dark)</li>
+        <li><strong>Universal Compatibility:</strong> Works with all JetBrains IDEs (IntelliJ IDEA, Android Studio, WebStorm, PyCharm, etc.)</li>
         <li><strong>Performance Optimized:</strong> Efficient caching and background processing</li>
     </ul>
     
@@ -50,7 +56,7 @@
         <li>AppCode</li>
     </ul>
     
-    <p>Perfect for Android developers, UI/UX designers, and anyone working with vector graphics in JetBrains IDEs.</p>
+    <p>Perfect for Android developers, web developers, UI/UX designers, and anyone working with Android Vector Drawables or SVG files in JetBrains IDEs.</p>
     ]]></description>
 
     <change-notes><![CDATA[
@@ -78,10 +84,10 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Tool window with enhanced icon and positioning -->
-        <toolWindow 
-            id="Vector Drawable Thumbnails" 
-            icon="/icons/toolWindow.svg" 
-            anchor="right" 
+        <toolWindow
+            id="Vector Thumbnails"
+            icon="/icons/toolWindow.svg"
+            anchor="right"
             factoryClass="com.github.ignaciotcrespo.vectordrawablesthumbnails.VectorDrawablesToolWindowFactory"
             canCloseContents="false"
             secondary="false"/>
