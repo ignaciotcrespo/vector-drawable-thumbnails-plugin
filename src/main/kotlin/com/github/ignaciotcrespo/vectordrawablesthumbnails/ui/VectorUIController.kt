@@ -257,13 +257,13 @@ class VectorUIController(
 
     private fun setupFileTypeCheckboxes() {
         view.checkIncludeVectorDrawable?.addActionListener {
-            // Reload vectors when Vector Drawable checkbox is toggled
-            loadVectors()
+            // Filter display when Vector Drawable checkbox is toggled (don't reload)
+            updateVectorDisplay()
         }
 
         view.checkIncludeSvg?.addActionListener {
-            // Reload vectors when SVG checkbox is toggled
-            loadVectors()
+            // Filter display when SVG checkbox is toggled (don't reload)
+            updateVectorDisplay()
         }
     }
     
@@ -432,10 +432,24 @@ class VectorUIController(
     private fun updateVectorDisplay() {
         // Run display update on background thread to avoid blocking UI
         SwingUtilities.invokeLater {
-            val items = vectorService.getFilteredAndSortedVectors()
-            
-            // Always display all items - no artificial limits
-            displayVectors(items)
+            val allItems = vectorService.getFilteredAndSortedVectors()
+
+            // Filter by file type based on checkboxes
+            val includeVectorDrawable = view.checkIncludeVectorDrawable?.isSelected ?: true
+            val includeSvg = view.checkIncludeSvg?.isSelected ?: true
+
+            val filteredItems = allItems.filter { item ->
+                val isSvg = item.validFile.file.name.endsWith(".svg", ignoreCase = true)
+                val isVectorDrawable = item.validFile.file.name.endsWith(".xml", ignoreCase = true)
+
+                when {
+                    isSvg -> includeSvg
+                    isVectorDrawable -> includeVectorDrawable
+                    else -> false
+                }
+            }
+
+            displayVectors(filteredItems)
         }
     }
     
@@ -516,17 +530,11 @@ class VectorUIController(
             try {
                 println("VectorUIController: Ultra-fast loading - no analytics, no blocking operations")
 
-                // Build list of enabled repositories based on checkboxes
-                val enabledRepositories = buildList {
-                    if (view.checkIncludeVectorDrawable?.isSelected == true) {
-                        add(vectorDrawableRepository)
-                    }
-                    if (view.checkIncludeSvg?.isSelected == true) {
-                        add(svgRepository)
-                    }
-                }
+                // Always load both vector drawables and SVG files
+                // Checkboxes will filter the display, not the loading
+                val enabledRepositories = listOf(vectorDrawableRepository, svgRepository)
 
-                // Load vectors from all enabled repositories
+                // Load vectors from all repositories
                 val loadingDisposable = vectorService.loadVectors(project, enabledRepositories)
                     .subscribeOn(Schedulers.io())
                     .observeOn(Schedulers.computation())

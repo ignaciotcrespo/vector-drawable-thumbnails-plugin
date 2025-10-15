@@ -235,7 +235,7 @@ public class VectorDrawablesView {
         checkIncludeVectorDrawable.setToolTipText("Include Android Vector Drawable XML files");
 
         checkIncludeSvg = new JCheckBox("SVG files (.svg)");
-        checkIncludeSvg.setSelected(false); // Disabled by default
+        checkIncludeSvg.setSelected(true);
         checkIncludeSvg.setToolTipText("Include SVG files");
 
         panel.add(checkIncludeVectorDrawable);
