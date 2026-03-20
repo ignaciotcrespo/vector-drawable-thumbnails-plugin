@@ -8,6 +8,12 @@
 
 A professional IntelliJ Platform plugin that displays thumbnail previews of Android Vector Drawable files in a convenient tool window. **Compatible with all JetBrains IDEs**.
 
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github-sponsors)](https://github.com/sponsors/ignaciotcrespo)
+
+**Other projects:**
+- [Color Manipulation](https://github.com/ignaciotcrespo/color-manipulation-plugin) — Color toolkit for JetBrains IDEs with 30+ format conversions
+- [GitShelf](https://github.com/ignaciotcrespo/gitshelf) — Changelists and shelves for git in the terminal
+
 <!-- Plugin description -->
 **Universal JetBrains IDE Compatibility** - Works seamlessly across all JetBrains products including IntelliJ IDEA, Android Studio, WebStorm, PyCharm, PhpStorm, and more.
 
@@ -23,7 +29,6 @@ A professional IntelliJ Platform plugin that displays thumbnail previews of Andr
 
 Perfect for Android developers, UI/UX designers, and anyone working with vector graphics in JetBrains IDEs.
 
-[Donations are welcome!](https://paypal.me/itcrespo)
 <!-- Plugin description end -->
 
 ## 🎯 JetBrains IDE Compatibility
@@ -195,13 +200,3 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with the [IntelliJ Platform Plugin Template](https://github.com/JetBrains/intellij-platform-plugin-template)
-- Thanks to the JetBrains team for the excellent platform APIs
-- Community contributors and testers
-
----
-
-**Made with ❤️ for the JetBrains community**
