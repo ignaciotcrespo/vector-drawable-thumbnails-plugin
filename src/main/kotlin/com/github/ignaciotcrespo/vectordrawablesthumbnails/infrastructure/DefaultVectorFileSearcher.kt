@@ -1,6 +1,7 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorFileSearcher
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.FileType
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.ProgressIndicator
@@ -20,24 +21,45 @@ import java.io.File
  */
 class DefaultVectorFileSearcher : VectorFileSearcher {
     
-    override fun searchVectorFiles(project: Project): Observable<ValidFile> {
+    override fun searchVectorFiles(
+        project: Project,
+        fileTypes: Set<FileType>
+    ): Observable<ValidFile> {
         return Observable.create { emitter: ObservableEmitter<ValidFile> ->
             try {
                 val progressIndicator = ProgressManager.getInstance().progressIndicator
-                progressIndicator?.text = "Scanning for vector drawable files..."
-                
+                val searchType = if (fileTypes.isEmpty()) {
+                    "Scanning for files..."
+                } else {
+                    val typeNames = fileTypes.joinToString(" and ") { it.displayName }
+                    "Scanning for $typeNames files..."
+                }
+                progressIndicator?.text = searchType
+
                 val modules = ModuleManager.getInstance(project).modules
+                val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
+
+                // Collect excluded roots from modules if they exist
                 if (modules.isNotEmpty()) {
-                    val allExcludedRoots: MutableList<VirtualFile> = ArrayList()
                     for (module in modules) {
                         val excludedRoots = ModuleRootManager.getInstance(module).excludeRoots
                         allExcludedRoots.addAll(listOf(*excludedRoots))
                     }
-                    val projectRootFolder = modules[0].project.basePath
-                    if (projectRootFolder != null) {
-                        val file1 = File(projectRootFolder)
-                        searchFiles(emitter, file1, projectRootFolder, allExcludedRoots, progressIndicator)
-                    }
+                }
+
+                // Always search in project base path, even if there are no modules
+                // This ensures compatibility with all JetBrains IDEs (WebStorm, PyCharm, etc.)
+                val projectRootFolder = project.basePath
+                if (projectRootFolder != null) {
+                    val file1 = File(projectRootFolder)
+                    searchFiles(
+                        emitter,
+                        file1,
+                        projectRootFolder,
+                        allExcludedRoots,
+                        progressIndicator,
+                        fileTypes
+                    )
                 }
             } finally {
                 emitter.onComplete()
@@ -50,19 +72,20 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
         folder: File,
         projectRootFolder: String,
         excludedRoots: List<VirtualFile>,
-        progressIndicator: ProgressIndicator? = null
+        progressIndicator: ProgressIndicator? = null,
+        fileTypes: Set<FileType>
     ) {
         // Check for cancellation
         progressIndicator?.checkCanceled()
-        
+
         val files = folder.listFiles()
         if (files != null) {
             progressIndicator?.text2 = "Scanning: ${folder.name}"
-            
+
             for (f in files) {
                 // Check for cancellation frequently
                 progressIndicator?.checkCanceled()
-                
+
                 if (f.isDirectory) {
                     if (shouldSkipDirectory(f)) {
                         continue
@@ -76,10 +99,20 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                         }
                     }
                     if (!isExcluded) {
-                        searchFiles(emitter, f, projectRootFolder, excludedRoots, progressIndicator)
+                        searchFiles(
+                            emitter,
+                            f,
+                            projectRootFolder,
+                            excludedRoots,
+                            progressIndicator,
+                            fileTypes
+                        )
                     }
-                } else if (f.toString().endsWith(".xml")) {
-                    emitter.onNext(ValidFile(f, projectRootFolder))
+                } else {
+                    // Check if file matches any of the requested file types
+                    if (fileTypes.any { it.matches(f.name) }) {
+                        emitter.onNext(ValidFile(f, projectRootFolder))
+                    }
                 }
             }
         }

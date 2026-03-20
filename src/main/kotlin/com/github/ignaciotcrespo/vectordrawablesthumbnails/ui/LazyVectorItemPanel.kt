@@ -3,6 +3,7 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.ui
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorAnalyticsService
 import com.intellij.openapi.project.Project
+import com.intellij.ui.JBColor
 import java.awt.*
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -27,10 +28,6 @@ class LazyVectorItemPanel(
     private var isImageLoaded = false
     private var isVisible = false
     
-    private val baseColor = Color(245, 245, 245)
-    private val hoverColor = Color(230, 240, 250)
-    private val borderColor = Color(200, 200, 200)
-    
     init {
         setupPanel()
         setupComponents()
@@ -40,9 +37,9 @@ class LazyVectorItemPanel(
     
     private fun setupPanel() {
         layout = BorderLayout()
-        background = baseColor
+        // Don't set background - inherit from parent to use theme colors
         border = BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(borderColor, 1),
+            BorderFactory.createLineBorder(JBColor.border(), 1),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         )
         cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
@@ -52,20 +49,20 @@ class LazyVectorItemPanel(
         // Image placeholder
         imageLabel = JLabel("Loading...", SwingConstants.CENTER)
         imageLabel.preferredSize = Dimension(120, 120)
-        imageLabel.background = Color.LIGHT_GRAY
-        imageLabel.isOpaque = true
-        imageLabel.border = BorderFactory.createLineBorder(Color.GRAY)
-        
+        // Don't set background - inherit theme colors
+        imageLabel.isOpaque = false
+        imageLabel.border = BorderFactory.createLineBorder(JBColor.border())
+
         // Vector name
         nameLabel = JLabel(vectorItem.name, SwingConstants.CENTER)
         nameLabel.font = nameLabel.font.deriveFont(Font.BOLD, 10f)
-        
+
         // File info
         val sizeKB = vectorItem.fileSize / 1024
         val complexityText = vectorItem.analytics?.complexityLevel?.name?.lowercase() ?: "unknown"
         infoLabel = JLabel("${sizeKB}KB • $complexityText", SwingConstants.CENTER)
         infoLabel.font = infoLabel.font.deriveFont(9f)
-        infoLabel.foreground = Color.GRAY
+        // Don't set foreground - inherit theme colors
         
         // Layout components
         add(imageLabel, BorderLayout.CENTER)
@@ -151,7 +148,7 @@ class LazyVectorItemPanel(
             } catch (e: Exception) {
                 SwingUtilities.invokeLater {
                     imageLabel.text = "Error"
-                    imageLabel.foreground = Color.RED
+                    imageLabel.foreground = JBColor.RED
                     repaint()
                 }
             }
@@ -165,19 +162,19 @@ class LazyVectorItemPanel(
                     // Single click - open file
                     com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.Utils.openValidFile(project, vectorItem.validFile)
                 } else if (e.clickCount == 2) {
-                    // Double click - show analytics
-                    showDetailedAnalytics()
+                    // Double click - show analytics (only for Vector Drawable files, not SVG)
+                    if (!vectorItem.validFile.file.name.endsWith(".svg", ignoreCase = true)) {
+                        showDetailedAnalytics()
+                    }
                 }
             }
             
             override fun mouseEntered(e: MouseEvent) {
-                background = hoverColor
-                repaint()
+                // Let the UI use default hover behavior
             }
-            
+
             override fun mouseExited(e: MouseEvent) {
-                background = baseColor
-                repaint()
+                // Let the UI use default hover behavior
             }
         }
         

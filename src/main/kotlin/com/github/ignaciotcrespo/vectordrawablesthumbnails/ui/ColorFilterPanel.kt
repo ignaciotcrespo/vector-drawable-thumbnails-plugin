@@ -1,5 +1,6 @@
 package com.github.ignaciotcrespo.vectordrawablesthumbnails.ui
 
+import com.intellij.ui.JBColor
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -18,7 +19,7 @@ class ColorFilterPanel : JPanel() {
     
     init {
         layout = FlowLayout(FlowLayout.LEFT, 5, 5)
-        background = Color.WHITE
+        // Don't set background - inherit from parent to use theme colors
         border = BorderFactory.createCompoundBorder(
             BorderFactory.createTitledBorder("Filter by Color"),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
@@ -168,7 +169,7 @@ class ColorFilterPanel : JPanel() {
             preferredSize = Dimension(40, 40)
             toolTipText = "$colorHex (used ${frequency}x)"
             cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-            border = LineBorder(Color.GRAY, 1)
+            border = LineBorder(JBColor.border(), 1)
         }
         
         fun setSelected(selected: Boolean) {
@@ -176,14 +177,14 @@ class ColorFilterPanel : JPanel() {
             if (selected) {
                 // Extremely visible selection with animation-like effect
                 border = BorderFactory.createCompoundBorder(
-                    LineBorder(Color(0, 120, 215), 4), // Thick bright blue
-                    LineBorder(Color.WHITE, 2) // White inner border for contrast
+                    LineBorder(JBColor(Color(0, 120, 215), Color(58, 150, 221)), 4), // Thick bright blue
+                    LineBorder(JBColor(Color.WHITE, Color(60, 63, 65)), 2) // Inner border for contrast
                 )
-                background = Color(230, 240, 255) // Light blue background
+                background = JBColor(Color(230, 240, 255), Color(38, 79, 120)) // Light blue background
                 preferredSize = Dimension(50, 50) // Slightly larger when selected
             } else {
-                border = LineBorder(Color.GRAY, 1)
-                background = parent?.background ?: Color.WHITE
+                border = LineBorder(JBColor.border(), 1)
+                // Don't set background - inherit from parent
                 preferredSize = Dimension(40, 40) // Normal size
             }
             revalidate()
@@ -201,29 +202,29 @@ class ColorFilterPanel : JPanel() {
             g2d.fillRect(margin, margin, width - 2 * margin, height - 2 * margin)
             
             // Draw frequency label
-            g2d.color = if (isLightColor(color)) Color.BLACK else Color.WHITE
+            g2d.color = if (isLightColor(color)) JBColor.BLACK else JBColor.WHITE
             g2d.font = Font(Font.SANS_SERIF, Font.BOLD, 10)
             val frequencyText = if (frequency > 99) "99+" else frequency.toString()
             val metrics = g2d.fontMetrics
             val textX = (width - metrics.stringWidth(frequencyText)) / 2
             val textY = height - margin - 4
             g2d.drawString(frequencyText, textX, textY)
-            
+
             // Draw very prominent checkmark if selected
             if (isSelected) {
                 // Draw large checkmark with shadow
                 val checkSize = width / 3
                 val checkX = width - checkSize - 4
                 val checkY = 4
-                
+
                 // Shadow
                 g2d.color = Color(0, 0, 0, 128)
                 g2d.stroke = BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
                 g2d.drawLine(checkX + 1, checkY + checkSize/2 + 1, checkX + checkSize/3 + 1, checkY + checkSize - 2 + 1)
                 g2d.drawLine(checkX + checkSize/3 + 1, checkY + checkSize - 2 + 1, checkX + checkSize + 1, checkY + 2 + 1)
-                
+
                 // White checkmark
-                g2d.color = Color.WHITE
+                g2d.color = JBColor.WHITE
                 g2d.stroke = BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
                 g2d.drawLine(checkX, checkY + checkSize/2, checkX + checkSize/3, checkY + checkSize - 2)
                 g2d.drawLine(checkX + checkSize/3, checkY + checkSize - 2, checkX + checkSize, checkY + 2)

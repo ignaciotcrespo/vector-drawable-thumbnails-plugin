@@ -6,6 +6,7 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.application.VectorSer
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.SortCriteria
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.SortDirection
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorAnalyticsService
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorRepository
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.Utils
 import com.intellij.openapi.project.Project
@@ -36,6 +37,8 @@ class VectorUIController(
     private val view: VectorDrawablesView,
     private val vectorService: VectorService,
     private val analyticsService: VectorAnalyticsService,
+    private val vectorDrawableRepository: VectorRepository,
+    private val svgRepository: VectorRepository,
     private val project: Project
 ) {
     
@@ -107,6 +110,7 @@ class VectorUIController(
         setupAdvancedFilters()
         setupPresetButtons()
         setupColorFilter()
+        setupFileTypeCheckboxes()
     }
     
     private fun setupDonateButton() {
@@ -246,9 +250,21 @@ class VectorUIController(
             currentSelectedColors = selectedColors
             updateAdvancedFilter()
         }
-        
+
         // Initialize with empty color palette
         view.colorFilterPanel?.updateColors(emptyMap())
+    }
+
+    private fun setupFileTypeCheckboxes() {
+        view.checkIncludeVectorDrawable?.addActionListener {
+            // Filter display when Vector Drawable checkbox is toggled (don't reload)
+            updateVectorDisplay()
+        }
+
+        view.checkIncludeSvg?.addActionListener {
+            // Filter display when SVG checkbox is toggled (don't reload)
+            updateVectorDisplay()
+        }
     }
     
     private fun updateAdvancedFilter() {
@@ -416,10 +432,24 @@ class VectorUIController(
     private fun updateVectorDisplay() {
         // Run display update on background thread to avoid blocking UI
         SwingUtilities.invokeLater {
-            val items = vectorService.getFilteredAndSortedVectors()
-            
-            // Always display all items - no artificial limits
-            displayVectors(items)
+            val allItems = vectorService.getFilteredAndSortedVectors()
+
+            // Filter by file type based on checkboxes
+            val includeVectorDrawable = view.checkIncludeVectorDrawable?.isSelected ?: true
+            val includeSvg = view.checkIncludeSvg?.isSelected ?: true
+
+            val filteredItems = allItems.filter { item ->
+                val isSvg = item.validFile.file.name.endsWith(".svg", ignoreCase = true)
+                val isVectorDrawable = item.validFile.file.name.endsWith(".xml", ignoreCase = true)
+
+                when {
+                    isSvg -> includeSvg
+                    isVectorDrawable -> includeVectorDrawable
+                    else -> false
+                }
+            }
+
+            displayVectors(filteredItems)
         }
     }
     
@@ -499,9 +529,13 @@ class VectorUIController(
         Thread {
             try {
                 println("VectorUIController: Ultra-fast loading - no analytics, no blocking operations")
-                
-                // Load vectors with minimal processing
-                val loadingDisposable = vectorService.loadVectors(project)
+
+                // Always load both vector drawables and SVG files
+                // Checkboxes will filter the display, not the loading
+                val enabledRepositories = listOf(vectorDrawableRepository, svgRepository)
+
+                // Load vectors from all repositories
+                val loadingDisposable = vectorService.loadVectors(project, enabledRepositories)
                     .subscribeOn(Schedulers.io())
                     .observeOn(Schedulers.computation())
                     .subscribe(
@@ -599,6 +633,8 @@ class VectorUIController(
                 SwingUtilities.invokeLater {
                     view.btnRefresh.text = "Refresh"
                     println("VectorUIController: Background analytics completed (usage analysis skipped)")
+                    // Update color palette now that analytics (including colors) have been extracted
+                    updateColorPalette()
                 }
                 
             } catch (e: Exception) {

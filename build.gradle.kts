@@ -37,6 +37,8 @@ repositories {
 dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("com.android.tools:sdk-common:31.2.2")
+    implementation("org.apache.xmlgraphics:batik-transcoder:1.17")
+    implementation("org.apache.xmlgraphics:batik-codec:1.17")
 
     testImplementation(libs.junit)
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
@@ -93,7 +95,7 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = providers.gradleProperty("pluginUntilBuild")
+            // Don't set untilBuild to support all future IDE versions
         }
     }
 
@@ -146,6 +148,13 @@ kover {
 tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
+    }
+
+    // Explicitly configure patchPluginXml to support all future IDE versions
+    patchPluginXml {
+        sinceBuild = providers.gradleProperty("pluginSinceBuild")
+        // Explicitly set untilBuild to null for unlimited forward compatibility
+        untilBuild = provider { null }
     }
 
     publishPlugin {

@@ -4,6 +4,7 @@ import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.Priority
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.utils.Utils
 import com.intellij.openapi.project.Project
+import com.intellij.ui.JBColor
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -19,9 +20,6 @@ class VectorItemPanel(
 ) : JPanel() {
     
     private var isHovered = false
-    private val baseColor = Color(245, 245, 245)
-    private val hoverColor = Color(230, 240, 250)
-    private val borderColor = Color(200, 200, 200)
     
     init {
         setupPanel()
@@ -30,20 +28,20 @@ class VectorItemPanel(
     
     private fun setupPanel() {
         layout = BorderLayout()
-        background = baseColor
+        // Don't set background - inherit from parent to use theme colors
         border = BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(borderColor, 1),
+            BorderFactory.createLineBorder(JBColor.border(), 1),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         )
-        
+
         // Main content
         add(createMainContent(), BorderLayout.CENTER)
-        
+
         // Analytics badge
         vectorItem.analytics?.let { analytics ->
             add(createAnalyticsBadge(analytics), BorderLayout.NORTH)
         }
-        
+
         cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
     }
     
@@ -78,25 +76,25 @@ class VectorItemPanel(
         // Size info
         val sizeLabel = JLabel(vectorItem.displaySize)
         sizeLabel.font = sizeLabel.font.deriveFont(10f)
-        sizeLabel.foreground = Color.GRAY
+        // Don't set foreground - inherit theme colors
         sizeLabel.horizontalAlignment = SwingConstants.CENTER
         sizeLabel.alignmentX = Component.CENTER_ALIGNMENT
         panel.add(sizeLabel)
-        
+
         // File size
         val fileSizeLabel = JLabel(vectorItem.fileSizeFormatted)
         fileSizeLabel.font = fileSizeLabel.font.deriveFont(9f)
-        fileSizeLabel.foreground = Color.GRAY
+        // Don't set foreground - inherit theme colors
         fileSizeLabel.horizontalAlignment = SwingConstants.CENTER
         fileSizeLabel.alignmentX = Component.CENTER_ALIGNMENT
         panel.add(fileSizeLabel)
-        
+
         // Tags (if available)
         vectorItem.analytics?.tags?.take(2)?.let { tags ->
             if (tags.isNotEmpty()) {
                 val tagsLabel = JLabel(tags.joinToString(", "))
                 tagsLabel.font = tagsLabel.font.deriveFont(8f)
-                tagsLabel.foreground = Color(100, 100, 150)
+                // Don't set foreground - inherit theme colors
                 tagsLabel.horizontalAlignment = SwingConstants.CENTER
                 tagsLabel.alignmentX = Component.CENTER_ALIGNMENT
                 panel.add(tagsLabel)
@@ -163,26 +161,27 @@ class VectorItemPanel(
         val mouseListener = object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
 //                println("VectorItemPanel: Mouse clicked on ${vectorItem.name}, clickCount=${e.clickCount}, analytics=${vectorItem.analytics != null}")
-                
+
                 if (e.clickCount == 1) {
 //                    println("VectorItemPanel: Single click - opening file")
                     Utils.openValidFile(project, vectorItem.validFile)
                 } else if (e.clickCount == 2) {
 //                    println("VectorItemPanel: Double click - showing analytics")
-                    showDetailedAnalytics()
+                    // Only show analytics for Vector Drawable files (.xml), not SVG files
+                    if (!vectorItem.validFile.file.name.endsWith(".svg", ignoreCase = true)) {
+                        showDetailedAnalytics()
+                    }
                 }
             }
             
             override fun mouseEntered(e: MouseEvent) {
                 isHovered = true
-                background = hoverColor
-                repaint()
+                // Let the UI use default hover behavior
             }
-            
+
             override fun mouseExited(e: MouseEvent) {
                 isHovered = false
-                background = baseColor
-                repaint()
+                // Let the UI use default hover behavior
             }
         }
         
