@@ -59,8 +59,6 @@ Perfect for Android developers, UI/UX designers, and anyone working with vector 
 - **Version Range**: Supports 80%+ of active JetBrains users (2022.3 - 2024.3+)
 - **Automated Testing**: Verified across multiple IDE versions
 
-For detailed compatibility information, see [JETBRAINS_COMPATIBILITY.md](JETBRAINS_COMPATIBILITY.md).
-
 ## 🏗️ Architecture
 
 This plugin has been professionally refactored to follow **SOLID principles**, making it scalable, maintainable, and testable.
@@ -95,8 +93,6 @@ This plugin has been professionally refactored to follow **SOLID principles**, m
 - **Scalable**: Easy to add new features and implementations
 - **Flexible**: Components can be swapped and configured
 - **Professional**: Enterprise-grade code quality
-
-For detailed information about the refactoring, see [SOLID_REFACTORING.md](SOLID_REFACTORING.md).
 
 ## 📦 Installation
 
@@ -182,20 +178,11 @@ The plugin uses the latest IntelliJ Platform Gradle Plugin with enhanced compati
 - **Compatibility Verification**: Automated testing across IDE versions
 - **Performance Testing**: Memory and CPU usage monitoring
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
 ### Development Guidelines
 1. Follow SOLID principles
 2. Write comprehensive tests
 3. Ensure compatibility across JetBrains IDEs
 4. Update documentation
-
-### Reporting Issues
-- **Compatibility Issues**: Use the [compatibility template](.github/ISSUE_TEMPLATE/compatibility.md)
-- **Bug Reports**: Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md)
-- **Feature Requests**: Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md)
 
 ## 📄 License
 
