@@ -13,6 +13,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
 import java.io.File
+import java.nio.file.Files
 
 /**
  * Default implementation of VectorFileSearcher.
@@ -86,6 +87,12 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
                 // Check for cancellation frequently
                 progressIndicator?.checkCanceled()
 
+                // Skip symlinks entirely to avoid cycles and expensive traversal
+                // (e.g. iOS xcframework directories full of symlinks).
+                if (Files.isSymbolicLink(f.toPath())) {
+                    continue
+                }
+
                 if (f.isDirectory) {
                     if (shouldSkipDirectory(f)) {
                         continue
@@ -124,6 +131,8 @@ class DefaultVectorFileSearcher : VectorFileSearcher {
             ".idea" == directory.name -> true
             ".git" == directory.name -> true
             "node_modules" == directory.name -> true
+            "Pods" == directory.name -> true
+            "build" == directory.name -> true
             directory.absolutePath.contains("build") && directory.absolutePath.contains("generated") -> true
             directory.absolutePath.contains("build") && directory.absolutePath.contains("intermediates") -> true
             else -> false
