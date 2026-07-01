@@ -535,13 +535,20 @@ class VectorUIController(
                 val enabledRepositories = listOf(vectorDrawableRepository, svgRepository)
 
                 // Load vectors from all repositories
+                var lastUiUpdateNanos = 0L
+                val uiUpdateIntervalNanos = 400_000_000L // 400 ms
                 val loadingDisposable = vectorService.loadVectors(project, enabledRepositories)
                     .subscribeOn(Schedulers.io())
                     .observeOn(Schedulers.computation())
                     .subscribe(
                         { vectorItem ->
-                            // Just load the vector, absolutely no processing
-                            // Don't even print to avoid I/O overhead
+                            // Throttled incremental UI update so results appear
+                            // while the scan is still running (large trees can take minutes).
+                            val now = System.nanoTime()
+                            if (now - lastUiUpdateNanos > uiUpdateIntervalNanos) {
+                                lastUiUpdateNanos = now
+                                SwingUtilities.invokeLater { updateVectorDisplay() }
+                            }
                         },
                         { error ->
                             println("VectorUIController: Error loading vectors: ${error.message}")

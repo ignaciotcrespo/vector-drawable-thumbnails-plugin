@@ -70,11 +70,15 @@ class VectorService(
             return cachedResults!!
         }
 
+        // Snapshot to avoid ConcurrentModificationException while
+        // background loading is still adding items.
+        val snapshot = synchronized(allVectors) { allVectors.toList() }
+
         // Apply both text filter and advanced filter
         val textFiltered = if (currentFilterText.isNullOrBlank()) {
-            allVectors
+            snapshot
         } else {
-            filter.filter(allVectors, currentFilterText)
+            filter.filter(snapshot, currentFilterText)
         }
 
         val advancedFiltered = filter.filter(textFiltered, currentAdvancedFilter)
@@ -89,7 +93,7 @@ class VectorService(
     }
 
     fun getAllVectors(): List<VectorItem> {
-        return allVectors.toList()
+        return synchronized(allVectors) { allVectors.toList() }
     }
 
     fun getAvailableRepositories(): List<VectorRepository> {
@@ -141,14 +145,18 @@ class VectorService(
     fun getCurrentSortDirection(): SortDirection = currentSortDirection
     
     private fun clearVectors() {
-        allVectors.clear()
-        vectorsMap.clear()
+        synchronized(allVectors) {
+            allVectors.clear()
+            vectorsMap.clear()
+        }
     }
 
     private fun addVector(vectorItem: VectorItem) {
         val key = generateVectorKey(vectorItem)
-        allVectors.add(vectorItem)
-        vectorsMap[key] = vectorItem
+        synchronized(allVectors) {
+            allVectors.add(vectorItem)
+            vectorsMap[key] = vectorItem
+        }
     }
 
     private fun generateVectorKey(vector: VectorItem): String {
