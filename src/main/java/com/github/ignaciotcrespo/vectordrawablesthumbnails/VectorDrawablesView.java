@@ -34,6 +34,7 @@ public class VectorDrawablesView {
     private com.github.ignaciotcrespo.vectordrawablesthumbnails.ui.ColorFilterPanel colorFilterPanel;
     private JCheckBox checkIncludeVectorDrawable;
     private JCheckBox checkIncludeSvg;
+    private JCheckBox checkIncludeImage;
 
     public VectorDrawablesView() {
 //        System.out.println("VectorDrawablesView: Constructor called");
@@ -165,6 +166,10 @@ public class VectorDrawablesView {
         return checkIncludeSvg;
     }
 
+    public JCheckBox getCheckIncludeImage() {
+        return checkIncludeImage;
+    }
+
     private void createUIComponents() {
         panelMain = new JPanel();
         panelMain.setLayout(new BorderLayout());
@@ -238,9 +243,15 @@ public class VectorDrawablesView {
         checkIncludeSvg.setSelected(true);
         checkIncludeSvg.setToolTipText("Include SVG files");
 
+        checkIncludeImage = new JCheckBox("Images (.png, .jpg, .webp, .gif, .bmp)");
+        checkIncludeImage.setSelected(false);
+        checkIncludeImage.setToolTipText("Include raster image files");
+
         panel.add(checkIncludeVectorDrawable);
         panel.add(Box.createHorizontalStrut(15));
         panel.add(checkIncludeSvg);
+        panel.add(Box.createHorizontalStrut(15));
+        panel.add(checkIncludeImage);
 
         return panel;
     }

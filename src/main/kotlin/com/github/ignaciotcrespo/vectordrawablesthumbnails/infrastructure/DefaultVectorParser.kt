@@ -2,6 +2,7 @@ package com.github.ignaciotcrespo.vectordrawablesthumbnails.infrastructure
 
 import com.android.ide.common.vectordrawable.VdPreview
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.domain.VectorParser
+import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.FileType
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.ValidFile
 import com.github.ignaciotcrespo.vectordrawablesthumbnails.model.VectorItem
 import io.reactivex.Observable
@@ -10,6 +11,8 @@ import org.apache.batik.transcoder.TranscoderInput
 import org.apache.batik.transcoder.TranscoderOutput
 import org.apache.batik.transcoder.image.ImageTranscoder
 import org.apache.batik.transcoder.image.PNGTranscoder
+import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
@@ -31,10 +34,11 @@ class DefaultVectorParser : VectorParser {
         return Observable.create<VectorItem> { emitter ->
             try {
 //                println("Parsing vector file: ${validFile.file.name}")
-                val vectorItem = if (validFile.file.name.endsWith(".svg")) {
-                    parseSvg(validFile)
-                } else {
-                    parseVector(validFile)
+                val fileType = FileType.fromFileName(validFile.file.name)
+                val vectorItem = when {
+                    fileType?.isRasterImage == true -> parseRasterImage(validFile)
+                    validFile.file.name.endsWith(".svg", ignoreCase = true) -> parseSvg(validFile)
+                    else -> parseVector(validFile)
                 }
 
                 if (vectorItem != null) {
@@ -202,4 +206,50 @@ class DefaultVectorParser : VectorParser {
             Pair(0, 0)
         }
     }
-} 
+
+    private fun parseRasterImage(validFile: ValidFile): VectorItem? {
+        return try {
+            val file = validFile.file
+            val source = ImageIO.read(file) ?: return null
+            val thumbnail = scaleToThumbnail(source, THUMBNAIL_MAX_DIMENSION)
+
+            VectorItem(
+                name = file.name,
+                image = thumbnail,
+                validFile = validFile,
+                viewportW = source.width,
+                viewportH = source.height,
+                fileSize = file.length()
+            )
+        } catch (e: Exception) {
+            println("Error parsing raster image ${validFile.file.name}: ${e.message}")
+            null
+        }
+    }
+
+    private fun scaleToThumbnail(source: BufferedImage, maxDimension: Int): BufferedImage {
+        val srcW = source.width
+        val srcH = source.height
+        if (srcW <= 0 || srcH <= 0) return source
+
+        val scale = minOf(maxDimension.toDouble() / srcW, maxDimension.toDouble() / srcH)
+        val targetW = maxOf(1, (srcW * scale).toInt())
+        val targetH = maxOf(1, (srcH * scale).toInt())
+
+        val target = BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB)
+        val g: Graphics2D = target.createGraphics()
+        try {
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            g.drawImage(source, 0, 0, targetW, targetH, null)
+        } finally {
+            g.dispose()
+        }
+        return target
+    }
+
+    companion object {
+        private const val THUMBNAIL_MAX_DIMENSION = 50
+    }
+}

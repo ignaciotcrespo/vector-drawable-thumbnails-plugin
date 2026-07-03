@@ -40,6 +40,10 @@ dependencies {
     implementation("org.apache.xmlgraphics:batik-transcoder:1.17")
     implementation("org.apache.xmlgraphics:batik-codec:1.17")
 
+    // TwelveMonkeys ImageIO plugins register additional readers via the ImageIO SPI.
+    // Needed so ImageIO.read can decode .webp thumbnails.
+    implementation("com.twelvemonkeys.imageio:imageio-webp:3.10.1")
+
     testImplementation(libs.junit)
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
     testImplementation("org.mockito:mockito-core:5.1.1")
