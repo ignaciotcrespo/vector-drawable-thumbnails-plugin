@@ -36,7 +36,7 @@ repositories {
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
-    implementation("com.android.tools:sdk-common:31.2.2")
+    implementation("com.android.tools:sdk-common:32.2.1")
     implementation("org.apache.xmlgraphics:batik-transcoder:1.17")
     implementation("org.apache.xmlgraphics:batik-codec:1.17")
 
