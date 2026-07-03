@@ -37,8 +37,8 @@ repositories {
 dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("com.android.tools:sdk-common:31.2.2")
-    implementation("org.apache.xmlgraphics:batik-transcoder:1.17")
-    implementation("org.apache.xmlgraphics:batik-codec:1.17")
+    implementation("org.apache.xmlgraphics:batik-transcoder:1.19")
+    implementation("org.apache.xmlgraphics:batik-codec:1.19")
 
     // TwelveMonkeys ImageIO plugins register additional readers via the ImageIO SPI.
     // Needed so ImageIO.read can decode .webp thumbnails.
