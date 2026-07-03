@@ -39,6 +39,7 @@ class VectorUIController(
     private val analyticsService: VectorAnalyticsService,
     private val vectorDrawableRepository: VectorRepository,
     private val svgRepository: VectorRepository,
+    private val rasterImageRepository: VectorRepository,
     private val project: Project
 ) {
     
@@ -265,6 +266,11 @@ class VectorUIController(
             // Filter display when SVG checkbox is toggled (don't reload)
             updateVectorDisplay()
         }
+
+        view.checkIncludeImage?.addActionListener {
+            // Filter display when raster image checkbox is toggled (don't reload)
+            updateVectorDisplay()
+        }
     }
     
     private fun updateAdvancedFilter() {
@@ -437,14 +443,16 @@ class VectorUIController(
             // Filter by file type based on checkboxes
             val includeVectorDrawable = view.checkIncludeVectorDrawable?.isSelected ?: true
             val includeSvg = view.checkIncludeSvg?.isSelected ?: true
+            val includeImage = view.checkIncludeImage?.isSelected ?: true
 
             val filteredItems = allItems.filter { item ->
-                val isSvg = item.validFile.file.name.endsWith(".svg", ignoreCase = true)
-                val isVectorDrawable = item.validFile.file.name.endsWith(".xml", ignoreCase = true)
+                val fileType = com.github.ignaciotcrespo.vectordrawablesthumbnails.model.FileType
+                    .fromFileName(item.validFile.file.name)
 
                 when {
-                    isSvg -> includeSvg
-                    isVectorDrawable -> includeVectorDrawable
+                    fileType == com.github.ignaciotcrespo.vectordrawablesthumbnails.model.FileType.SVG -> includeSvg
+                    fileType == com.github.ignaciotcrespo.vectordrawablesthumbnails.model.FileType.VECTOR_DRAWABLE -> includeVectorDrawable
+                    fileType?.isRasterImage == true -> includeImage
                     else -> false
                 }
             }
@@ -530,9 +538,13 @@ class VectorUIController(
             try {
                 println("VectorUIController: Ultra-fast loading - no analytics, no blocking operations")
 
-                // Always load both vector drawables and SVG files
-                // Checkboxes will filter the display, not the loading
-                val enabledRepositories = listOf(vectorDrawableRepository, svgRepository)
+                // Always load all supported formats.
+                // Checkboxes will filter the display, not the loading.
+                val enabledRepositories = listOf(
+                    vectorDrawableRepository,
+                    svgRepository,
+                    rasterImageRepository
+                )
 
                 // Load vectors from all repositories
                 var lastUiUpdateNanos = 0L

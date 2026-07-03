@@ -29,9 +29,13 @@ class DependencyContainer {
         SvgRepository(vectorFileSearcher, vectorParser)
     }
 
+    val rasterImageRepository: VectorRepository by lazy {
+        RasterImageRepository(vectorFileSearcher, vectorParser)
+    }
+
     // All available repositories
     private val allRepositories: List<VectorRepository> by lazy {
-        listOf(vectorDrawableRepository, svgRepository)
+        listOf(vectorDrawableRepository, svgRepository, rasterImageRepository)
     }
 
     // Application layer
